@@ -46,6 +46,72 @@ enum CodexUsageLogParser {
         )
     }
 
+    static func parseRateLimits(body: String, timestamp: Date) -> UsageRateLimitSnapshot? {
+        guard let eventData = extractEventJSON(from: body),
+              let event = try? JSONSerialization.jsonObject(with: eventData) as? [String: Any],
+              event["type"] as? String == "codex.rate_limits",
+              let rateLimits = event["rate_limits"] as? [String: Any] else {
+            return nil
+        }
+
+        let primary = parseRateLimitWindow(rateLimits["primary"])
+        let secondary = parseRateLimitWindow(rateLimits["secondary"])
+        let monthly = parseMonthlyWindow(in: rateLimits)
+        let windows = [primary, secondary, monthly].compactMap { $0 }
+
+        return UsageRateLimitSnapshot(
+            planType: event["plan_type"] as? String,
+            updatedAt: timestamp,
+            allowed: boolValue(rateLimits["allowed"], fallback: windows.contains { $0.remainingPercent > 0 }),
+            limitReached: boolValue(rateLimits["limit_reached"], fallback: false),
+            shortWindow: windows.first { $0.windowMinutes == 300 },
+            weeklyWindow: windows.first { $0.windowMinutes == 10_080 },
+            monthlyWindow: windows.first { $0.windowMinutes >= 40_000 }
+        )
+    }
+
+    private static func parseMonthlyWindow(in rateLimits: [String: Any]) -> UsageRateLimitWindow? {
+        let candidateKeys = [
+            "monthly",
+            "monthly_credit",
+            "monthly_credits",
+            "credits",
+            "workspace_credits"
+        ]
+
+        for key in candidateKeys {
+            if let window = parseRateLimitWindow(rateLimits[key]) {
+                return window
+            }
+        }
+
+        return nil
+    }
+
+    private static func parseRateLimitWindow(_ value: Any?) -> UsageRateLimitWindow? {
+        guard let value = value as? [String: Any] else {
+            return nil
+        }
+
+        let usedPercent = intValue(value["used_percent"])
+        let windowMinutes = intValue(value["window_minutes"])
+        let resetAfterSeconds = optionalIntValue(value["reset_after_seconds"])
+        let resetAt: Date?
+
+        if let resetAtSeconds = optionalDoubleValue(value["reset_at"]) {
+            resetAt = Date(timeIntervalSince1970: resetAtSeconds)
+        } else {
+            resetAt = nil
+        }
+
+        return UsageRateLimitWindow(
+            usedPercent: usedPercent,
+            windowMinutes: windowMinutes,
+            resetAfterSeconds: resetAfterSeconds,
+            resetAt: resetAt
+        )
+    }
+
     private static func intValue(_ value: Any?, fallback: Int = 0) -> Int {
         if let value = value as? Int {
             return value
@@ -53,6 +119,42 @@ enum CodexUsageLogParser {
 
         if let value = value as? NSNumber {
             return value.intValue
+        }
+
+        return fallback
+    }
+
+    private static func optionalIntValue(_ value: Any?) -> Int? {
+        if let value = value as? Int {
+            return value
+        }
+
+        if let value = value as? NSNumber {
+            return value.intValue
+        }
+
+        return nil
+    }
+
+    private static func optionalDoubleValue(_ value: Any?) -> Double? {
+        if let value = value as? Double {
+            return value
+        }
+
+        if let value = value as? NSNumber {
+            return value.doubleValue
+        }
+
+        return nil
+    }
+
+    private static func boolValue(_ value: Any?, fallback: Bool) -> Bool {
+        if let value = value as? Bool {
+            return value
+        }
+
+        if let value = value as? NSNumber {
+            return value.boolValue
         }
 
         return fallback

@@ -12,6 +12,7 @@ struct UsageSnapshot: Equatable, Identifiable {
     let todayTotalTokens: Int
     let estimatedCost: Decimal?
     let budgetLimitTokens: Int?
+    let rateLimits: UsageRateLimitSnapshot?
 
     var id: String {
         sessionId
@@ -38,8 +39,52 @@ struct UsageSnapshot: Equatable, Identifiable {
             totalTokens: 10_300,
             todayTotalTokens: 58_940,
             estimatedCost: Decimal(string: "0.0325"),
-            budgetLimitTokens: 150_000
+            budgetLimitTokens: 150_000,
+            rateLimits: .preview
         )
+    }
+}
+
+struct UsageRateLimitSnapshot: Equatable {
+    let planType: String?
+    let updatedAt: Date
+    let allowed: Bool
+    let limitReached: Bool
+    let shortWindow: UsageRateLimitWindow?
+    let weeklyWindow: UsageRateLimitWindow?
+    let monthlyWindow: UsageRateLimitWindow?
+
+    static var preview: UsageRateLimitSnapshot {
+        UsageRateLimitSnapshot(
+            planType: "prolite",
+            updatedAt: Date(),
+            allowed: true,
+            limitReached: false,
+            shortWindow: UsageRateLimitWindow(
+                usedPercent: 41,
+                windowMinutes: 300,
+                resetAfterSeconds: 2_335,
+                resetAt: Date().addingTimeInterval(2_335)
+            ),
+            weeklyWindow: UsageRateLimitWindow(
+                usedPercent: 56,
+                windowMinutes: 10_080,
+                resetAfterSeconds: 118_153,
+                resetAt: Date().addingTimeInterval(118_153)
+            ),
+            monthlyWindow: nil
+        )
+    }
+}
+
+struct UsageRateLimitWindow: Equatable {
+    let usedPercent: Int
+    let windowMinutes: Int
+    let resetAfterSeconds: Int?
+    let resetAt: Date?
+
+    var remainingPercent: Int {
+        min(max(100 - usedPercent, 0), 100)
     }
 }
 
@@ -62,6 +107,14 @@ enum UsageFormatting {
         }
 
         return "\(value)%"
+    }
+
+    static func remainingPercent(_ window: UsageRateLimitWindow?) -> String {
+        guard let window else {
+            return "--"
+        }
+
+        return "\(window.remainingPercent)%"
     }
 
     static func cost(_ value: Decimal?) -> String {

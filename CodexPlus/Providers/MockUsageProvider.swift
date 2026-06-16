@@ -52,7 +52,8 @@ actor MockUsageProvider: UsageProvider {
             totalTokens: inputTokens + outputTokens,
             todayTotalTokens: todayTotalTokens,
             estimatedCost: estimatedCost(),
-            budgetLimitTokens: budgetLimitTokens
+            budgetLimitTokens: budgetLimitTokens,
+            rateLimits: .preview
         )
     }
 

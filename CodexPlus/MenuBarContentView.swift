@@ -31,6 +31,52 @@ struct MenuBarContentView: View {
                 )
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "剩余额度")
+
+                HStack(spacing: 10) {
+                    MetricTile(
+                        title: "5 小时",
+                        value: shortWindowRemainingText,
+                        caption: shortWindowResetText,
+                        systemImage: "hourglass"
+                    )
+
+                    MetricTile(
+                        title: "每周",
+                        value: weeklyWindowRemainingText,
+                        caption: weeklyWindowResetText,
+                        systemImage: "calendar"
+                    )
+                }
+
+                InfoRow(
+                    title: "计划",
+                    value: planTypeText,
+                    systemImage: "person.crop.circle.badge.checkmark"
+                )
+
+                InfoRow(
+                    title: "额度状态",
+                    value: rateLimitStatusText,
+                    systemImage: "checkmark.seal"
+                )
+
+                InfoRow(
+                    title: "额度更新时间",
+                    value: rateLimitUpdatedText,
+                    systemImage: "clock.arrow.circlepath"
+                )
+
+                if let monthlyWindow = snapshot?.rateLimits?.monthlyWindow {
+                    InfoRow(
+                        title: "月度窗口",
+                        value: monthlyWindowText(monthlyWindow),
+                        systemImage: "calendar.badge.clock"
+                    )
+                }
+            }
+
             VStack(spacing: 8) {
                 InfoRow(
                     title: "状态",
@@ -188,6 +234,42 @@ struct MenuBarContentView: View {
         UsageFormatting.percent(snapshot?.budgetPercent)
     }
 
+    private var shortWindowRemainingText: String {
+        UsageFormatting.remainingPercent(snapshot?.rateLimits?.shortWindow)
+    }
+
+    private var weeklyWindowRemainingText: String {
+        UsageFormatting.remainingPercent(snapshot?.rateLimits?.weeklyWindow)
+    }
+
+    private var shortWindowResetText: String {
+        resetCaption(for: snapshot?.rateLimits?.shortWindow)
+    }
+
+    private var weeklyWindowResetText: String {
+        resetCaption(for: snapshot?.rateLimits?.weeklyWindow)
+    }
+
+    private var planTypeText: String {
+        snapshot?.rateLimits?.planType ?? "--"
+    }
+
+    private var rateLimitStatusText: String {
+        guard let rateLimits = snapshot?.rateLimits else {
+            return "等待数据"
+        }
+
+        if rateLimits.limitReached {
+            return "已达上限"
+        }
+
+        return rateLimits.allowed ? "可用" : "受限"
+    }
+
+    private var rateLimitUpdatedText: String {
+        UsageFormatting.time(snapshot?.rateLimits?.updatedAt)
+    }
+
     private var estimatedCostText: String {
         UsageFormatting.cost(snapshot?.estimatedCost)
     }
@@ -226,6 +308,18 @@ struct MenuBarContentView: View {
         }
 
         return UsageFormatting.tokens(snapshot.reasoningTokens)
+    }
+
+    private func resetCaption(for window: UsageRateLimitWindow?) -> String {
+        guard let window else {
+            return "等待数据"
+        }
+
+        return "刷新 \(UsageFormatting.time(window.resetAt))"
+    }
+
+    private func monthlyWindowText(_ window: UsageRateLimitWindow) -> String {
+        "\(window.remainingPercent)% · 刷新 \(UsageFormatting.time(window.resetAt))"
     }
 
     private var statusColor: Color {

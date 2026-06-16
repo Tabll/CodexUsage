@@ -3,6 +3,8 @@ import Foundation
 enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
     case currentSessionTokens
     case todayTokens
+    case shortWindowRemaining
+    case weeklyWindowRemaining
     case budgetPercent
     case estimatedCost
 
@@ -16,6 +18,10 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
             return "当前会话"
         case .todayTokens:
             return "今日用量"
+        case .shortWindowRemaining:
+            return "5 小时剩余"
+        case .weeklyWindowRemaining:
+            return "每周剩余"
         case .budgetPercent:
             return "预算比例"
         case .estimatedCost:
@@ -29,6 +35,10 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
             return "bolt.horizontal.circle.fill"
         case .todayTokens:
             return "chart.bar.xaxis"
+        case .shortWindowRemaining:
+            return "hourglass"
+        case .weeklyWindowRemaining:
+            return "calendar"
         case .budgetPercent:
             return "gauge"
         case .estimatedCost:
@@ -50,6 +60,10 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
             return UsageFormatting.tokens(snapshot.totalTokens)
         case .todayTokens:
             return UsageFormatting.tokens(snapshot.todayTotalTokens)
+        case .shortWindowRemaining:
+            return UsageFormatting.remainingPercent(snapshot.rateLimits?.shortWindow)
+        case .weeklyWindowRemaining:
+            return UsageFormatting.remainingPercent(snapshot.rateLimits?.weeklyWindow)
         case .budgetPercent:
             return UsageFormatting.percent(snapshot.budgetPercent)
         case .estimatedCost:
@@ -57,4 +71,3 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
         }
     }
 }
-

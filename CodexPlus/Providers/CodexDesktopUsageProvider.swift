@@ -41,7 +41,9 @@ struct CodexDesktopUsageProvider: UsageProvider {
             throw UsageProviderError.unavailable("找不到 Codex 桌面端用量数据库")
         }
 
-        let events = try readUsageEvents(from: databaseURL)
+        let rows = try readCandidateRows(from: databaseURL)
+        let events = readUsageEvents(from: rows)
+        let latestRateLimits = readLatestRateLimits(from: rows)
 
         guard let latestEvent = events.max(by: { $0.timestamp < $1.timestamp }) else {
             throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可解析的 response.completed usage")
@@ -52,11 +54,14 @@ struct CodexDesktopUsageProvider: UsageProvider {
         let todayTotalTokens = events
             .filter { $0.timestamp >= todayStart }
             .reduce(0) { $0 + $1.totalTokens }
+        let snapshotUpdatedAt = [latestEvent.timestamp, latestRateLimits?.updatedAt]
+            .compactMap { $0 }
+            .max() ?? latestEvent.timestamp
 
         return UsageSnapshot(
             sessionId: latestEvent.threadId,
             providerName: name,
-            updatedAt: latestEvent.timestamp,
+            updatedAt: snapshotUpdatedAt,
             inputTokens: currentSessionEvents.reduce(0) { $0 + $1.inputTokens },
             outputTokens: currentSessionEvents.reduce(0) { $0 + $1.outputTokens },
             cachedInputTokens: currentSessionEvents.reduce(0) { $0 + $1.cachedInputTokens },
@@ -64,12 +69,12 @@ struct CodexDesktopUsageProvider: UsageProvider {
             totalTokens: currentSessionEvents.reduce(0) { $0 + $1.totalTokens },
             todayTotalTokens: todayTotalTokens,
             estimatedCost: nil,
-            budgetLimitTokens: nil
+            budgetLimitTokens: nil,
+            rateLimits: latestRateLimits
         )
     }
 
-    private func readUsageEvents(from databaseURL: URL) throws -> [CodexUsageLogEvent] {
-        let rows = try readCandidateRows(from: databaseURL)
+    private func readUsageEvents(from rows: [CodexUsageLogRow]) -> [CodexUsageLogEvent] {
         var eventsByTurnId: [String: CodexUsageLogEvent] = [:]
 
         for row in rows {
@@ -84,6 +89,17 @@ struct CodexDesktopUsageProvider: UsageProvider {
         }
 
         return Array(eventsByTurnId.values)
+    }
+
+    private func readLatestRateLimits(from rows: [CodexUsageLogRow]) -> UsageRateLimitSnapshot? {
+        rows
+            .compactMap { row in
+                CodexUsageLogParser.parseRateLimits(
+                    body: row.body,
+                    timestamp: row.timestamp
+                )
+            }
+            .max { $0.updatedAt < $1.updatedAt }
     }
 
     private func readCandidateRows(from databaseURL: URL) throws -> [CodexUsageLogRow] {
@@ -111,7 +127,10 @@ struct CodexDesktopUsageProvider: UsageProvider {
         SELECT ts, feedback_log_body
         FROM logs
         WHERE target = 'codex_api::endpoint::responses_websocket'
-          AND feedback_log_body LIKE '%"usage":%'
+          AND (
+            feedback_log_body LIKE '%"usage":%'
+            OR feedback_log_body LIKE '%"type":"codex.rate_limits"%'
+          )
         ORDER BY id DESC
         LIMIT ?;
         """
