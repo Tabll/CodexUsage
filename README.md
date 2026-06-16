@@ -1,14 +1,22 @@
 # CodexPlus
 
-CodexPlus 是一个 macOS 菜单栏 App，用来近实时显示 Codex 的使用用量。
+CodexPlus 是一个 macOS 菜单栏 App，用来近实时显示 Codex 桌面端的使用用量。
 
-第一阶段目标刻意保持很小：先把当前 Codex 会话的用量稳定显示在苹果状态栏上；等用量数据源确认稳定后，再扩展到每日汇总、预算、提醒和历史图表。
+第一阶段目标刻意保持很小：先把 Codex 桌面端的当前用量稳定显示在苹果状态栏上；后续再扩展到每日汇总、预算、提醒和历史图表。
+
+## 已确认决策
+
+- 第一版数据源：Codex 桌面端用量。
+- token 用量来源：Codex 桌面端本身暴露或记录的用量数据。
+- 最低系统版本：macOS 26。
+- 状态栏显示内容：用户可以自定义配置选择。
+- 产品定位：面向分发的 macOS App。
 
 ## 产品想法
 
 使用 Codex 时，用量很容易在工作流里被忽略。CodexPlus 要做的是让它一眼可见：
 
-- 状态栏文字：显示当前会话 token、当日花费或剩余额度。
+- 状态栏文字：用户可配置显示当前会话 token、今日 token、预估花费或剩余额度。
 - 弹窗面板：显示更完整的用量、最近会话、刷新状态和提醒。
 - 阈值提醒：当用量超过配置阈值时，可选发送 macOS 通知。
 - 隐私优先：默认只在本地处理数据；任何联网数据源都需要用户明确开启。
@@ -22,27 +30,25 @@ MVP 只先回答一个问题：
 初始功能：
 
 - 一个没有 Dock 图标的 macOS 菜单栏 App。
-- 状态栏显示紧凑指标，例如 `12.4K` 或 `68%`。
+- 状态栏显示用户选择的紧凑指标，例如 `12.4K` 或 `68%`。
 - 弹窗面板显示：
   - 当前会话用量，
   - 今日总用量，
   - 上次更新时间，
   - 当前数据源，
   - 刷新和退出操作。
-- 抽象出用量数据提供器，后续可以切换本地日志、文件导出、Mock 数据或 API 数据源。
+- 抽象出用量数据提供器；第一版接入 Codex 桌面端用量，开发期保留 Mock 数据源便于 UI 和状态测试。
 - 尽可能通过文件监听实现近实时更新，必要时退回轮询。
 
 ## 数据源策略
 
 这个项目最大的风险不是菜单栏 UI，而是 Codex 用量的真实来源。
 
-CodexPlus 不应该一开始就把某一种脆弱假设写死。建议先定义一个内部统一模型，再让不同适配器来喂数据：
+第一版明确以 Codex 桌面端用量作为唯一真实数据源。实现上仍然建议先定义一个内部统一模型，让 UI 不直接依赖具体解析方式：
 
 ```text
 UsageProvider
-  -> CodexLocalLogProvider
-  -> CodexSessionFileProvider
-  -> OpenAIUsageApiProvider
+  -> CodexDesktopUsageProvider
   -> MockUsageProvider
 ```
 
@@ -62,19 +68,19 @@ UsageSnapshot
   budgetLimit
 ```
 
-第一版实现建议先围绕 `MockUsageProvider` 和一个本地文件数据源来做。这样即使真实 Codex 用量来源后面调整，App 的 UI 和状态管理也能先稳定下来。
+第一版实现建议先围绕 `MockUsageProvider` 和 `CodexDesktopUsageProvider` 来做。`MockUsageProvider` 用于开发和测试，`CodexDesktopUsageProvider` 负责读取 Codex 桌面端的真实用量。
 
 ## 技术方向
 
 推荐技术栈：
 
 - Swift + SwiftUI。
-- macOS 13+ 使用 `MenuBarExtra`。
-- 如果需要支持更老系统，再考虑 `NSStatusItem` 兜底。
+- 最低支持 macOS 26，优先使用系统最新 SwiftUI 能力。
+- 使用 `MenuBarExtra` 构建菜单栏入口。
 - 使用 `ObservableObject` 或 Observation 管理 UI 状态。
 - 本地文件数据源优先考虑 `FileSystemEventStream` 或 `DispatchSourceFileSystemObject` 做监听。
 - 轻量设置使用 `UserDefaults`。
-- 第一版优先用 Swift Package Manager；当签名、资源、发布流程需要时再迁移到 Xcode 项目。
+- 面向分发构建，优先使用 Xcode 项目管理签名、资源和发布配置。
 
 高层架构：
 
@@ -91,7 +97,7 @@ CodexPlusApp
 
 这个 App 应该像一个安静的工具，而不是被挤进菜单栏的小型仪表盘。
 
-默认状态栏显示项可以支持：
+状态栏显示项由用户配置选择，第一版可支持：
 
 - 今日总 token，
 - 当前会话 token，
@@ -125,19 +131,17 @@ CodexPlusApp
 
 ## 开发说明
 
-当前仓库是空项目。下一步可以先搭一个最小 macOS 菜单栏 App，然后把 UI 接到 Mock 数据源上，最后再接入真实 Codex 用量数据。
+当前仓库仍处于规划阶段。下一步可以先搭一个最小 macOS 菜单栏 App，然后把 UI 接到 Mock 数据源上，最后再接入 Codex 桌面端真实用量数据。
 
-在写正式解析逻辑之前，需要先检查当前环境里 Codex 实际暴露了什么用量信息，并决定第一个真实数据源应该读取：
+在写正式解析逻辑之前，需要先检查当前环境里 Codex 桌面端实际暴露了什么用量信息，并决定 `CodexDesktopUsageProvider` 应该读取：
 
-- Codex 会话日志，
+- Codex 桌面端会话日志，
 - 导出的用量 JSON，
-- OpenAI 用量 API，
 - 或者由 CodexPlus 自己维护的辅助脚本。
 
-## 待确认问题
+## 后续待确认问题
 
-- 第一版应该优先追踪哪个 Codex 使用场景：Codex 桌面端、Codex CLI、OpenAI API 用量，还是全部？
-- 本地最可靠的 token 用量来源是什么？
-- 状态栏默认应该显示 token、预估花费，还是剩余额度？
-- 最低支持哪个 macOS 版本？
-- 这个项目先做成开发者本地工具，还是一开始就按可分发 App 来准备？
+- Codex 桌面端本地用量数据的具体文件、格式和更新频率是什么？
+- 是否需要按 Codex 会话、项目或工作区拆分用量？
+- 状态栏显示项的默认值应该是什么？
+- 面向分发时采用哪种签名、打包和更新机制？
