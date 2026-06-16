@@ -102,6 +102,7 @@ UsageSnapshot
 - `CodexPlus/Services/UsageService.swift`：负责刷新、文件监听、轮询、错误状态、数据过期状态、预算状态和提醒通知。
 - `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，用于持久化状态栏显示模式、数据源选择、每日预算、警告阈值、通知开关和最后一次有效快照。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
+- `CodexPlus/Assets.xcassets/AppIcon.appiconset`：App 图标资源，包含 macOS 需要的 16px 到 1024px 多尺寸 PNG。
 - `CodexPlusTests`：单元测试和 UI 冒烟测试目标，覆盖用量模型、日志解析器、服务状态和菜单栏弹窗渲染。
 
 高层架构：
