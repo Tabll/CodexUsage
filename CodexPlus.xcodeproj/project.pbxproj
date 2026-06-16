@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		7F6C2E402B4F4E9000A1B201 /* CodexPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */; };
 		7F6C2E412B4F4E9000A1B201 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */; };
+		7F6C2E502B4F4E9000A1B201 /* UsageSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */; };
+		7F6C2E512B4F4E9000A1B201 /* UsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */; };
+		7F6C2E522B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E562B4F4E9000A1B201 /* MockUsageProvider.swift */; };
+		7F6C2E532B4F4E9000A1B201 /* UsageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E572B4F4E9000A1B201 /* UsageService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,6 +20,10 @@
 		7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusApp.swift; sourceTree = "<group>"; };
 		7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		7F6C2E3F2B4F4E9000A1B201 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSnapshot.swift; sourceTree = "<group>"; };
+		7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageProvider.swift; sourceTree = "<group>"; };
+		7F6C2E562B4F4E9000A1B201 /* MockUsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUsageProvider.swift; sourceTree = "<group>"; };
+		7F6C2E572B4F4E9000A1B201 /* UsageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,11 +56,39 @@
 		7F6C2E372B4F4E9000A1B201 /* CodexPlus */ = {
 			isa = PBXGroup;
 			children = (
+				7F6C2E582B4F4E9000A1B201 /* Models */,
+				7F6C2E592B4F4E9000A1B201 /* Providers */,
+				7F6C2E5A2B4F4E9000A1B201 /* Services */,
 				7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */,
 				7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */,
 				7F6C2E3F2B4F4E9000A1B201 /* Info.plist */,
 			);
 			path = CodexPlus;
+			sourceTree = "<group>";
+		};
+		7F6C2E582B4F4E9000A1B201 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7F6C2E592B4F4E9000A1B201 /* Providers */ = {
+			isa = PBXGroup;
+			children = (
+				7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */,
+				7F6C2E562B4F4E9000A1B201 /* MockUsageProvider.swift */,
+			);
+			path = Providers;
+			sourceTree = "<group>";
+		};
+		7F6C2E5A2B4F4E9000A1B201 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				7F6C2E572B4F4E9000A1B201 /* UsageService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -126,6 +162,10 @@
 			files = (
 				7F6C2E402B4F4E9000A1B201 /* CodexPlusApp.swift in Sources */,
 				7F6C2E412B4F4E9000A1B201 /* MenuBarContentView.swift in Sources */,
+				7F6C2E502B4F4E9000A1B201 /* UsageSnapshot.swift in Sources */,
+				7F6C2E512B4F4E9000A1B201 /* UsageProvider.swift in Sources */,
+				7F6C2E522B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */,
+				7F6C2E532B4F4E9000A1B201 /* UsageService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -323,4 +363,3 @@
 	};
 	rootObject = 7F6C2E2D2B4F4E9000A1B201 /* Project object */;
 }
-

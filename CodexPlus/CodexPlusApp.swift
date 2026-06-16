@@ -2,15 +2,19 @@ import AppKit
 import SwiftUI
 
 @main
+@MainActor
 struct CodexPlusApp: App {
-    @State private var usage = PlaceholderUsage.sample
+    @StateObject private var usageService = UsageService(provider: MockUsageProvider())
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarContentView(
-                usage: usage,
+                snapshot: usageService.snapshot,
+                status: usageService.status,
+                providerName: usageService.providerName,
+                lastErrorMessage: usageService.lastErrorMessage,
                 onRefresh: {
-                    usage = usage.refreshed()
+                    usageService.refresh()
                 },
                 onQuit: {
                     NSApplication.shared.terminate(nil)
@@ -18,9 +22,8 @@ struct CodexPlusApp: App {
             )
             .frame(width: 320)
         } label: {
-            Label(usage.menuBarTitle, systemImage: "bolt.horizontal.circle.fill")
+            Label(usageService.menuBarTitle, systemImage: usageService.status.menuBarSystemImage)
         }
         .menuBarExtraStyle(.window)
     }
 }
-

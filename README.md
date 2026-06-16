@@ -64,8 +64,9 @@ UsageSnapshot
   cachedInputTokens
   reasoningTokens
   totalTokens
+  todayTotalTokens
   estimatedCost
-  budgetLimit
+  budgetLimitTokens
 ```
 
 第一版实现建议先围绕 `MockUsageProvider` 和 `CodexDesktopUsageProvider` 来做。`MockUsageProvider` 用于开发和测试，`CodexDesktopUsageProvider` 负责读取 Codex 桌面端的真实用量。
@@ -87,6 +88,10 @@ UsageSnapshot
 - `CodexPlus.xcodeproj`：macOS App 工程。
 - `CodexPlus/CodexPlusApp.swift`：SwiftUI App 入口和 `MenuBarExtra` 配置。
 - `CodexPlus/MenuBarContentView.swift`：菜单栏弹窗 UI 和占位用量数据。
+- `CodexPlus/Models/UsageSnapshot.swift`：统一用量快照模型和显示格式化工具。
+- `CodexPlus/Providers/UsageProvider.swift`：用量数据源协议和 provider 错误类型。
+- `CodexPlus/Providers/MockUsageProvider.swift`：开发期 Mock 数据源。
+- `CodexPlus/Services/UsageService.swift`：负责刷新、轮询、错误状态和数据过期状态。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
 
 高层架构：
@@ -94,10 +99,9 @@ UsageSnapshot
 ```text
 CodexPlusApp
   -> MenuBarContentView
-  -> UsageViewModel
   -> UsageService
   -> UsageProvider
-  -> SettingsStore
+  -> MockUsageProvider
 ```
 
 ## 菜单栏体验
@@ -138,7 +142,7 @@ CodexPlusApp
 
 ## 开发说明
 
-当前仓库已经包含一个最小 macOS 菜单栏 App 脚手架。它使用占位用量数据显示状态栏文字和弹窗内容，后续会把占位数据替换为正式的用量模型和 Codex 桌面端数据源。
+当前仓库已经包含一个最小 macOS 菜单栏 App 脚手架。它使用 `UsageService` 和 `MockUsageProvider` 驱动状态栏文字和弹窗内容，后续会把 Mock 数据源替换为 Codex 桌面端真实用量数据源。
 
 本地运行：
 

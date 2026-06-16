@@ -18,11 +18,11 @@
 
 ## 第 2 阶段：用量模型
 
-- [ ] 定义 `UsageSnapshot`。
-- [ ] 定义 `UsageProvider`。
-- [ ] 实现 `MockUsageProvider`。
-- [ ] 实现 `UsageService`，负责轮询或订阅 provider 更新。
-- [ ] 添加基础错误状态和数据过期状态。
+- [x] 定义 `UsageSnapshot`。
+- [x] 定义 `UsageProvider`。
+- [x] 实现 `MockUsageProvider`。
+- [x] 实现 `UsageService`，负责轮询或订阅 provider 更新。
+- [x] 添加基础错误状态和数据过期状态。
 
 ## 第 3 阶段：UI MVP
 

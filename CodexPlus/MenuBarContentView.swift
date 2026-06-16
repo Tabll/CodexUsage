@@ -1,75 +1,10 @@
-import Foundation
 import SwiftUI
 
-struct PlaceholderUsage: Equatable {
-    let currentSessionTokens: Int
-    let todayTokens: Int
-    let budgetPercent: Int
-    let providerName: String
-    let lastUpdated: Date
-
-    static let sample = PlaceholderUsage(
-        currentSessionTokens: 12_420,
-        todayTokens: 58_940,
-        budgetPercent: 41,
-        providerName: "Codex 桌面端",
-        lastUpdated: Date()
-    )
-
-    var menuBarTitle: String {
-        Self.formatTokens(currentSessionTokens)
-    }
-
-    var currentSessionText: String {
-        Self.formatTokens(currentSessionTokens)
-    }
-
-    var todayText: String {
-        Self.formatTokens(todayTokens)
-    }
-
-    var budgetText: String {
-        "\(budgetPercent)%"
-    }
-
-    var lastUpdatedText: String {
-        Self.timeFormatter.string(from: lastUpdated)
-    }
-
-    func refreshed() -> PlaceholderUsage {
-        let increment = Int.random(in: 180...1_200)
-
-        return PlaceholderUsage(
-            currentSessionTokens: currentSessionTokens + increment,
-            todayTokens: todayTokens + increment,
-            budgetPercent: min(budgetPercent + 1, 100),
-            providerName: providerName,
-            lastUpdated: Date()
-        )
-    }
-
-    private static func formatTokens(_ value: Int) -> String {
-        if value >= 1_000_000 {
-            return String(format: "%.1fM", Double(value) / 1_000_000)
-        }
-
-        if value >= 1_000 {
-            return String(format: "%.1fK", Double(value) / 1_000)
-        }
-
-        return "\(value)"
-    }
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .medium
-        return formatter
-    }()
-}
-
 struct MenuBarContentView: View {
-    let usage: PlaceholderUsage
+    let snapshot: UsageSnapshot?
+    let status: UsageServiceStatus
+    let providerName: String
+    let lastErrorMessage: String?
     let onRefresh: () -> Void
     let onQuit: () -> Void
 
@@ -82,14 +17,14 @@ struct MenuBarContentView: View {
             HStack(spacing: 10) {
                 MetricTile(
                     title: "当前会话",
-                    value: usage.currentSessionText,
+                    value: currentSessionText,
                     caption: "tokens",
                     systemImage: "bolt.horizontal"
                 )
 
                 MetricTile(
                     title: "今日用量",
-                    value: usage.todayText,
+                    value: todayText,
                     caption: "tokens",
                     systemImage: "chart.bar.xaxis"
                 )
@@ -97,22 +32,42 @@ struct MenuBarContentView: View {
 
             VStack(spacing: 8) {
                 InfoRow(
+                    title: "状态",
+                    value: status.title,
+                    systemImage: status.menuBarSystemImage
+                )
+
+                InfoRow(
                     title: "预算",
-                    value: usage.budgetText,
+                    value: budgetText,
                     systemImage: "gauge"
                 )
 
                 InfoRow(
+                    title: "预估花费",
+                    value: estimatedCostText,
+                    systemImage: "creditcard"
+                )
+
+                InfoRow(
                     title: "数据源",
-                    value: usage.providerName,
+                    value: providerName,
                     systemImage: "desktopcomputer"
                 )
 
                 InfoRow(
                     title: "更新时间",
-                    value: usage.lastUpdatedText,
+                    value: lastUpdatedText,
                     systemImage: "clock"
                 )
+            }
+
+            if let lastErrorMessage, !lastErrorMessage.isEmpty {
+                Text(lastErrorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Divider()
@@ -149,15 +104,59 @@ struct MenuBarContentView: View {
 
             Spacer()
 
-            Text("占位数据")
+            Text(status.title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .fontWeight(.medium)
+                .foregroundStyle(statusColor)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .fill(statusColor.opacity(0.12))
                 )
+        }
+    }
+
+    private var currentSessionText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.totalTokens)
+    }
+
+    private var todayText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.todayTotalTokens)
+    }
+
+    private var budgetText: String {
+        UsageFormatting.percent(snapshot?.budgetPercent)
+    }
+
+    private var estimatedCostText: String {
+        UsageFormatting.cost(snapshot?.estimatedCost)
+    }
+
+    private var lastUpdatedText: String {
+        UsageFormatting.time(snapshot?.updatedAt)
+    }
+
+    private var statusColor: Color {
+        switch status {
+        case .idle:
+            return .secondary
+        case .refreshing:
+            return .blue
+        case .current:
+            return .green
+        case .stale:
+            return .orange
+        case .failed:
+            return .red
         }
     }
 }
@@ -222,9 +221,13 @@ private struct InfoRow: View {
 
 #Preview {
     MenuBarContentView(
-        usage: .sample,
+        snapshot: .preview,
+        status: .current,
+        providerName: "Codex 桌面端（Mock）",
+        lastErrorMessage: nil,
         onRefresh: {},
         onQuit: {}
     )
     .frame(width: 320)
 }
+
