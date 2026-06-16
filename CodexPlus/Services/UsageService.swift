@@ -56,7 +56,7 @@ final class UsageService: ObservableObject {
     private let refreshInterval: TimeInterval
     private let staleInterval: TimeInterval
     private let calendar: Calendar
-    private let notificationCenter: UNUserNotificationCenter
+    private let notificationCenter: UNUserNotificationCenter?
     private let onSnapshotUpdate: (UsageSnapshot) -> Void
     private var budgetConfiguration: UsageBudgetConfiguration
     private var budgetNotificationDay: Date?
@@ -72,7 +72,7 @@ final class UsageService: ObservableObject {
         refreshInterval: TimeInterval = 8,
         staleInterval: TimeInterval = 30,
         calendar: Calendar = .current,
-        notificationCenter: UNUserNotificationCenter = .current(),
+        notificationCenter: UNUserNotificationCenter? = nil,
         onSnapshotUpdate: @escaping (UsageSnapshot) -> Void = { _ in },
         startsImmediately: Bool = true
     ) {
@@ -323,6 +323,7 @@ final class UsageService: ObservableObject {
         }
 
         lastNotifiedBudgetSeverity = budgetState.severity
+        let notificationCenter = notificationCenter ?? .current()
 
         Task { [notificationCenter] in
             let isAuthorized = await Self.ensureNotificationAuthorization(using: notificationCenter)

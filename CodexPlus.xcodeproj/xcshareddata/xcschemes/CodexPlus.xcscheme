@@ -28,6 +28,19 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "7F6C2F202B4F4E9000A1B201"
+               BuildableName = "CodexPlusTests.xctest"
+               BlueprintName = "CodexPlusTests"
+               ReferencedContainer = "container:CodexPlus.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -75,4 +88,3 @@
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>
-

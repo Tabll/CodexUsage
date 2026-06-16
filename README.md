@@ -102,6 +102,7 @@ UsageSnapshot
 - `CodexPlus/Services/UsageService.swift`：负责刷新、文件监听、轮询、错误状态、数据过期状态、预算状态和提醒通知。
 - `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，用于持久化状态栏显示模式、数据源选择、每日预算、警告阈值、通知开关和最后一次有效快照。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
+- `CodexPlusTests`：单元测试和 UI 冒烟测试目标，覆盖用量模型、日志解析器、服务状态和菜单栏弹窗渲染。
 
 高层架构：
 
@@ -184,6 +185,26 @@ CodexPlusApp
 3. 运行 App 后，它会出现在 macOS 菜单栏，不显示 Dock 图标。
 
 命令行构建需要完整 Xcode 和 macOS 26 SDK。当前如果只安装 Command Line Tools，`xcodebuild` 无法构建这个 App。
+
+测试：
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+xcodebuild test \
+  -project CodexPlus.xcodeproj \
+  -scheme CodexPlus \
+  -configuration Debug \
+  -destination platform=macOS \
+  -derivedDataPath /private/tmp/CodexPlusDerivedData \
+  -parallel-testing-enabled NO
+```
+
+当前测试覆盖：
+
+- 用量模型计算：预算百分比、阈值裁剪、警告和超限状态。
+- Codex 桌面端数据解析：`response.completed` usage 和 `codex.rate_limits` 剩余额度事件。
+- 服务状态：刷新成功、provider 失败、缓存恢复和数据过期。
+- UI 冒烟测试：菜单栏弹窗可以在 `NSHostingView` 中完成基础渲染。
 
 ## 后续待确认问题
 

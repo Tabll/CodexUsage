@@ -18,6 +18,22 @@
 		7F6C2E702B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */; };
 		7F6C2E712B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */; };
 		7F6C2E722B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */; };
+		7F6C2F102B4F4E9000A1B201 /* UsageModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F012B4F4E9000A1B201 /* UsageModelTests.swift */; };
+		7F6C2F112B4F4E9000A1B201 /* CodexUsageLogParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F022B4F4E9000A1B201 /* CodexUsageLogParserTests.swift */; };
+		7F6C2F122B4F4E9000A1B201 /* UsageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F032B4F4E9000A1B201 /* UsageServiceTests.swift */; };
+		7F6C2F132B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */; };
+		7F6C2F142B4F4E9000A1B201 /* response_completed_usage.log in Resources */ = {isa = PBXBuildFile; fileRef = 7F6C2F052B4F4E9000A1B201 /* response_completed_usage.log */; };
+		7F6C2F152B4F4E9000A1B201 /* codex_rate_limits.log in Resources */ = {isa = PBXBuildFile; fileRef = 7F6C2F062B4F4E9000A1B201 /* codex_rate_limits.log */; };
+		7F6C2F302B4F4E9000A1B201 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */; };
+		7F6C2F312B4F4E9000A1B201 /* UsageSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */; };
+		7F6C2F322B4F4E9000A1B201 /* UsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */; };
+		7F6C2F332B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E562B4F4E9000A1B201 /* MockUsageProvider.swift */; };
+		7F6C2F342B4F4E9000A1B201 /* UsageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E572B4F4E9000A1B201 /* UsageService.swift */; };
+		7F6C2F352B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E622B4F4E9000A1B201 /* MenuBarDisplayMode.swift */; };
+		7F6C2F362B4F4E9000A1B201 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E632B4F4E9000A1B201 /* SettingsStore.swift */; };
+		7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */; };
+		7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */; };
+		7F6C2F392B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +50,13 @@
 		7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexDesktopUsageProvider.swift; sourceTree = "<group>"; };
 		7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexUsageLogParser.swift; sourceTree = "<group>"; };
 		7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodexPlusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7F6C2F012B4F4E9000A1B201 /* UsageModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageModelTests.swift; sourceTree = "<group>"; };
+		7F6C2F022B4F4E9000A1B201 /* CodexUsageLogParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexUsageLogParserTests.swift; sourceTree = "<group>"; };
+		7F6C2F032B4F4E9000A1B201 /* UsageServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageServiceTests.swift; sourceTree = "<group>"; };
+		7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentViewSmokeTests.swift; sourceTree = "<group>"; };
+		7F6C2F052B4F4E9000A1B201 /* response_completed_usage.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = response_completed_usage.log; sourceTree = "<group>"; };
+		7F6C2F062B4F4E9000A1B201 /* codex_rate_limits.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex_rate_limits.log; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +68,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7F6C2F1A2B4F4E9000A1B201 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F6C2F392B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -52,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				7F6C2E372B4F4E9000A1B201 /* CodexPlus */,
+				7F6C2F0A2B4F4E9000A1B201 /* CodexPlusTests */,
 				7F6C2E762B4F4E9000A1B201 /* Frameworks */,
 				7F6C2E352B4F4E9000A1B201 /* Products */,
 			);
@@ -61,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				7F6C2E362B4F4E9000A1B201 /* CodexPlus.app */,
+				7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +148,27 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		7F6C2F0A2B4F4E9000A1B201 /* CodexPlusTests */ = {
+			isa = PBXGroup;
+			children = (
+				7F6C2F012B4F4E9000A1B201 /* UsageModelTests.swift */,
+				7F6C2F022B4F4E9000A1B201 /* CodexUsageLogParserTests.swift */,
+				7F6C2F032B4F4E9000A1B201 /* UsageServiceTests.swift */,
+				7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */,
+				7F6C2F0B2B4F4E9000A1B201 /* Fixtures */,
+			);
+			path = CodexPlusTests;
+			sourceTree = "<group>";
+		};
+		7F6C2F0B2B4F4E9000A1B201 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				7F6C2F052B4F4E9000A1B201 /* response_completed_usage.log */,
+				7F6C2F062B4F4E9000A1B201 /* codex_rate_limits.log */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
 		7F6C2E762B4F4E9000A1B201 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -143,6 +197,23 @@
 			productReference = 7F6C2E362B4F4E9000A1B201 /* CodexPlus.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7F6C2F202B4F4E9000A1B201 /* CodexPlusTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7F6C2F252B4F4E9000A1B201 /* Build configuration list for PBXNativeTarget "CodexPlusTests" */;
+			buildPhases = (
+				7F6C2F1C2B4F4E9000A1B201 /* Sources */,
+				7F6C2F1A2B4F4E9000A1B201 /* Frameworks */,
+				7F6C2F1B2B4F4E9000A1B201 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CodexPlusTests;
+			productName = CodexPlusTests;
+			productReference = 7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -154,6 +225,9 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					7F6C2E342B4F4E9000A1B201 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					7F6C2F202B4F4E9000A1B201 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -173,6 +247,7 @@
 			projectRoot = "";
 			targets = (
 				7F6C2E342B4F4E9000A1B201 /* CodexPlus */,
+				7F6C2F202B4F4E9000A1B201 /* CodexPlusTests */,
 			);
 		};
 /* End PBXProject section */
@@ -182,6 +257,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7F6C2F1B2B4F4E9000A1B201 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F6C2F142B4F4E9000A1B201 /* response_completed_usage.log in Resources */,
+				7F6C2F152B4F4E9000A1B201 /* codex_rate_limits.log in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -202,6 +286,26 @@
 				7F6C2E612B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
 				7F6C2E702B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
 				7F6C2E712B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7F6C2F1C2B4F4E9000A1B201 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F6C2F302B4F4E9000A1B201 /* MenuBarContentView.swift in Sources */,
+				7F6C2F312B4F4E9000A1B201 /* UsageSnapshot.swift in Sources */,
+				7F6C2F322B4F4E9000A1B201 /* UsageProvider.swift in Sources */,
+				7F6C2F332B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */,
+				7F6C2F342B4F4E9000A1B201 /* UsageService.swift in Sources */,
+				7F6C2F352B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */,
+				7F6C2F362B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
+				7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
+				7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
+				7F6C2F102B4F4E9000A1B201 /* UsageModelTests.swift in Sources */,
+				7F6C2F112B4F4E9000A1B201 /* CodexUsageLogParserTests.swift in Sources */,
+				7F6C2F122B4F4E9000A1B201 /* UsageServiceTests.swift in Sources */,
+				7F6C2F132B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -374,6 +478,48 @@
 			};
 			name = Release;
 		};
+		7F6C2F222B4F4E9000A1B201 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7F6C2F232B4F4E9000A1B201 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -391,6 +537,15 @@
 			buildConfigurations = (
 				7F6C2E462B4F4E9000A1B201 /* Debug */,
 				7F6C2E472B4F4E9000A1B201 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7F6C2F252B4F4E9000A1B201 /* Build configuration list for PBXNativeTarget "CodexPlusTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7F6C2F222B4F4E9000A1B201 /* Debug */,
+				7F6C2F232B4F4E9000A1B201 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
