@@ -2,8 +2,15 @@ import Foundation
 
 protocol UsageProvider {
     var name: String { get }
+    var refreshHintFiles: [URL] { get }
 
     func fetchSnapshot() async throws -> UsageSnapshot
+}
+
+extension UsageProvider {
+    var refreshHintFiles: [URL] {
+        []
+    }
 }
 
 enum UsageProviderError: LocalizedError, Equatable {
@@ -19,4 +26,3 @@ enum UsageProviderError: LocalizedError, Equatable {
         }
     }
 }
-

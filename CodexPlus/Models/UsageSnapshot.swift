@@ -8,16 +8,13 @@ struct UsageSnapshot: Equatable, Identifiable {
     let outputTokens: Int
     let cachedInputTokens: Int
     let reasoningTokens: Int
+    let totalTokens: Int
     let todayTotalTokens: Int
     let estimatedCost: Decimal?
     let budgetLimitTokens: Int?
 
     var id: String {
         sessionId
-    }
-
-    var totalTokens: Int {
-        inputTokens + outputTokens + cachedInputTokens + reasoningTokens
     }
 
     var budgetPercent: Int? {
@@ -38,6 +35,7 @@ struct UsageSnapshot: Equatable, Identifiable {
             outputTokens: 3_100,
             cachedInputTokens: 1_600,
             reasoningTokens: 520,
+            totalTokens: 10_300,
             todayTotalTokens: 58_940,
             estimatedCost: Decimal(string: "0.0325"),
             budgetLimitTokens: 150_000

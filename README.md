@@ -69,7 +69,7 @@ UsageSnapshot
   budgetLimitTokens
 ```
 
-第一版实现建议先围绕 `MockUsageProvider` 和 `CodexDesktopUsageProvider` 来做。`MockUsageProvider` 用于开发和测试，`CodexDesktopUsageProvider` 负责读取 Codex 桌面端的真实用量。
+第一版实现围绕 `MockUsageProvider` 和 `CodexDesktopUsageProvider` 来做。`MockUsageProvider` 用于开发和测试，`CodexDesktopUsageProvider` 默认读取 Codex 桌面端的真实用量。真实数据源细节见 [Codex 桌面端用量数据源](docs/codex-desktop-usage-source.md)。
 
 ## 技术方向
 
@@ -90,9 +90,11 @@ UsageSnapshot
 - `CodexPlus/MenuBarContentView.swift`：菜单栏弹窗 UI 和占位用量数据。
 - `CodexPlus/Models/MenuBarDisplayMode.swift`：状态栏显示模式，包括当前会话、今日用量、预算比例和预估花费。
 - `CodexPlus/Models/UsageSnapshot.swift`：统一用量快照模型和显示格式化工具。
+- `CodexPlus/Providers/CodexDesktopUsageProvider.swift`：读取 Codex 桌面端 SQLite 日志的真实用量 provider。
+- `CodexPlus/Providers/CodexUsageLogParser.swift`：解析 `response.completed` usage JSON 的日志解析器。
 - `CodexPlus/Providers/UsageProvider.swift`：用量数据源协议和 provider 错误类型。
 - `CodexPlus/Providers/MockUsageProvider.swift`：开发期 Mock 数据源。
-- `CodexPlus/Services/UsageService.swift`：负责刷新、轮询、错误状态和数据过期状态。
+- `CodexPlus/Services/UsageService.swift`：负责刷新、文件监听、轮询、错误状态和数据过期状态。
 - `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，目前用于持久化状态栏显示模式。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
 
@@ -147,7 +149,9 @@ CodexPlusApp
 
 ## 开发说明
 
-当前仓库已经包含一个最小 macOS 菜单栏 App 脚手架。它使用 `UsageService` 和 `MockUsageProvider` 驱动状态栏文字和弹窗内容，后续会把 Mock 数据源替换为 Codex 桌面端真实用量数据源。
+当前仓库已经包含一个最小 macOS 菜单栏 App 脚手架。它使用 `UsageService` 驱动状态栏文字和弹窗内容，默认 provider 是 Codex 桌面端真实用量数据源。
+
+默认运行时已经使用 `CodexDesktopUsageProvider` 读取 Codex 桌面端真实用量；`MockUsageProvider` 继续保留用于开发、预览和后续测试。
 
 本地运行：
 
@@ -157,15 +161,8 @@ CodexPlusApp
 
 命令行构建需要完整 Xcode 和 macOS 26 SDK。当前如果只安装 Command Line Tools，`xcodebuild` 无法构建这个 App。
 
-在写正式解析逻辑之前，需要先检查当前环境里 Codex 桌面端实际暴露了什么用量信息，并决定 `CodexDesktopUsageProvider` 应该读取：
-
-- Codex 桌面端会话日志，
-- 导出的用量 JSON，
-- 或者由 CodexPlus 自己维护的辅助脚本。
-
 ## 后续待确认问题
 
-- Codex 桌面端本地用量数据的具体文件、格式和更新频率是什么？
 - 是否需要按 Codex 会话、项目或工作区拆分用量？
 - 状态栏显示项的默认值应该是什么？
 - 面向分发时采用哪种签名、打包和更新机制？

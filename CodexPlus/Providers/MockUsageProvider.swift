@@ -39,7 +39,7 @@ actor MockUsageProvider: UsageProvider {
         outputTokens += outputDelta
         cachedInputTokens += cachedDelta
         reasoningTokens += reasoningDelta
-        todayTotalTokens += inputDelta + outputDelta + cachedDelta + reasoningDelta
+        todayTotalTokens += inputDelta + outputDelta
 
         return UsageSnapshot(
             sessionId: sessionId,
@@ -49,6 +49,7 @@ actor MockUsageProvider: UsageProvider {
             outputTokens: outputTokens,
             cachedInputTokens: cachedInputTokens,
             reasoningTokens: reasoningTokens,
+            totalTokens: inputTokens + outputTokens,
             todayTotalTokens: todayTotalTokens,
             estimatedCost: estimatedCost(),
             budgetLimitTokens: budgetLimitTokens

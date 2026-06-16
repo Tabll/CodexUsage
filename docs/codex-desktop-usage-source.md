@@ -1,0 +1,88 @@
+# Codex 桌面端用量数据源
+
+CodexPlus 第一版真实数据源读取 Codex 桌面端本地日志，不访问网络。
+
+## 文件位置
+
+按优先级查找：
+
+1. `~/.codex/sqlite/logs_2.sqlite`
+2. `~/.codex/logs_2.sqlite`
+
+Provider 会以只读方式打开 SQLite 数据库，并监听当前数据库、WAL、SHM 文件变化：
+
+- `logs_2.sqlite`
+- `logs_2.sqlite-wal`
+- `logs_2.sqlite-shm`
+
+文件监听用于近实时刷新；定时轮询仍然保留为兜底。
+
+## 表结构
+
+当前使用 `logs` 表：
+
+```text
+ts
+target
+feedback_log_body
+```
+
+只解析满足以下条件的日志：
+
+```text
+target = codex_api::endpoint::responses_websocket
+feedback_log_body contains "usage"
+```
+
+解析阶段还会继续要求 websocket event 的 JSON 类型是：
+
+```json
+{"type": "response.completed"}
+```
+
+这样可以避开请求体、工具调用参数、普通日志正文和包含查询命令的伪命中。
+
+## 用量字段
+
+从 `response.usage` 读取：
+
+```json
+{
+  "input_tokens": 1200,
+  "input_tokens_details": {
+    "cached_tokens": 400
+  },
+  "output_tokens": 300,
+  "output_tokens_details": {
+    "reasoning_tokens": 80
+  },
+  "total_tokens": 1500
+}
+```
+
+字段映射：
+
+- `input_tokens` -> `UsageSnapshot.inputTokens`
+- `input_tokens_details.cached_tokens` -> `UsageSnapshot.cachedInputTokens`
+- `output_tokens` -> `UsageSnapshot.outputTokens`
+- `output_tokens_details.reasoning_tokens` -> `UsageSnapshot.reasoningTokens`
+- `total_tokens` -> `UsageSnapshot.totalTokens`
+
+注意：cached input 是 input tokens 的子集，reasoning tokens 是 output tokens 的子集，所以 `totalTokens` 使用日志里的 `total_tokens`，不再把所有字段相加，避免重复计算。
+
+## 聚合方式
+
+- 当前会话：取最新 `response.completed` 所在 thread，并汇总该 thread 最近可解析 turn 的用量。
+- 今日总量：汇总本地自然日内所有可解析 `response.completed` 的 `total_tokens`。
+- 更新时间：使用最新可解析 usage 记录的 `ts`。
+
+当前实现会读取最近 5000 条候选日志，再在内存里解析和去重。
+
+## 错误处理
+
+- 找不到数据库：返回 provider unavailable。
+- 数据库无法打开：返回 SQLite 错误。
+- 找不到可解析 usage：返回 provider unavailable。
+- 格式异常：忽略单条异常日志，继续解析其它候选记录。
+- 日志轮转或文件变化：文件监听触发刷新，轮询作为兜底。
+

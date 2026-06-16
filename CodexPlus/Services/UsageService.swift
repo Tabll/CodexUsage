@@ -1,4 +1,6 @@
 import Combine
+import Darwin
+import Dispatch
 import Foundation
 
 enum UsageServiceStatus: Equatable {
@@ -48,6 +50,7 @@ final class UsageService: ObservableObject {
     private let staleInterval: TimeInterval
     private var pollingTask: Task<Void, Never>?
     private var staleTask: Task<Void, Never>?
+    private var fileWatchers: [FileChangeWatcher] = []
 
     init(
         provider: UsageProvider,
@@ -67,6 +70,7 @@ final class UsageService: ObservableObject {
     deinit {
         pollingTask?.cancel()
         staleTask?.cancel()
+        fileWatchers.removeAll()
     }
 
     var menuBarTitle: String {
@@ -90,6 +94,8 @@ final class UsageService: ObservableObject {
             return
         }
 
+        startFileWatchers()
+
         pollingTask = Task { [weak self] in
             await self?.runPollingLoop()
         }
@@ -100,6 +106,7 @@ final class UsageService: ObservableObject {
         pollingTask = nil
         staleTask?.cancel()
         staleTask = nil
+        fileWatchers.removeAll()
     }
 
     func refresh() {
@@ -160,10 +167,50 @@ final class UsageService: ObservableObject {
             status = .stale
         }
     }
+
+    private func startFileWatchers() {
+        fileWatchers = provider.refreshHintFiles.compactMap { url in
+            FileChangeWatcher(url: url) { [weak self] in
+                Task { @MainActor in
+                    self?.refresh()
+                }
+            }
+        }
+    }
 }
 
 private extension TimeInterval {
     var nanoseconds: UInt64 {
         UInt64(self * 1_000_000_000)
+    }
+}
+
+private final class FileChangeWatcher {
+    private let fileDescriptor: CInt
+    private let source: DispatchSourceFileSystemObject
+
+    init?(url: URL, onChange: @escaping () -> Void) {
+        let descriptor = open(url.path, O_EVTONLY)
+
+        guard descriptor >= 0 else {
+            return nil
+        }
+
+        fileDescriptor = descriptor
+        source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .extend, .attrib, .rename, .delete],
+            queue: .main
+        )
+
+        source.setEventHandler(handler: onChange)
+        source.setCancelHandler {
+            close(descriptor)
+        }
+        source.resume()
+    }
+
+    deinit {
+        source.cancel()
     }
 }

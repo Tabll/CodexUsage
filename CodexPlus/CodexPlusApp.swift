@@ -4,7 +4,7 @@ import SwiftUI
 @main
 @MainActor
 struct CodexPlusApp: App {
-    @StateObject private var usageService = UsageService(provider: MockUsageProvider())
+    @StateObject private var usageService = UsageService(provider: CodexDesktopUsageProvider())
     @StateObject private var settingsStore = SettingsStore()
 
     var body: some Scene {
