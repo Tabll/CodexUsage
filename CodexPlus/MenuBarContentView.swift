@@ -3,9 +3,14 @@ import SwiftUI
 struct MenuBarContentView: View {
     let snapshot: UsageSnapshot?
     let status: UsageServiceStatus
+    let budgetState: UsageBudgetState
     let providerName: String
     let lastErrorMessage: String?
     @Binding var menuBarDisplayMode: MenuBarDisplayMode
+    @Binding var isDailyBudgetEnabled: Bool
+    @Binding var dailyBudgetTokens: Int
+    @Binding var warningThresholdPercent: Int
+    @Binding var budgetNotificationsEnabled: Bool
     let onRefresh: () -> Void
     let onQuit: () -> Void
 
@@ -77,6 +82,69 @@ struct MenuBarContentView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "预算与提醒")
+
+                HStack(spacing: 10) {
+                    MetricTile(
+                        title: "预算",
+                        value: budgetPercentText,
+                        caption: budgetUsageCaption,
+                        systemImage: "gauge"
+                    )
+
+                    MetricTile(
+                        title: "剩余",
+                        value: budgetRemainingText,
+                        caption: budgetWarningCaption,
+                        systemImage: "bell.badge"
+                    )
+                }
+
+                InfoRow(
+                    title: "预算状态",
+                    value: budgetState.title,
+                    systemImage: "checkmark.shield"
+                )
+
+                Toggle(isOn: $isDailyBudgetEnabled) {
+                    Label("每日预算", systemImage: "gauge")
+                }
+                .toggleStyle(.switch)
+
+                Stepper(
+                    value: $dailyBudgetTokens,
+                    in: UsageBudgetConfiguration.minimumDailyLimitTokens...UsageBudgetConfiguration.maximumDailyLimitTokens,
+                    step: 10_000
+                ) {
+                    SettingValueRow(
+                        title: "预算额度",
+                        value: UsageFormatting.tokens(dailyBudgetTokens),
+                        systemImage: "number"
+                    )
+                }
+                .disabled(!isDailyBudgetEnabled)
+
+                Stepper(
+                    value: $warningThresholdPercent,
+                    in: UsageBudgetConfiguration.minimumWarningThresholdPercent...UsageBudgetConfiguration.maximumWarningThresholdPercent,
+                    step: 5
+                ) {
+                    SettingValueRow(
+                        title: "警告阈值",
+                        value: "\(warningThresholdPercent)%",
+                        systemImage: "bell"
+                    )
+                }
+                .disabled(!isDailyBudgetEnabled)
+
+                Toggle(isOn: $budgetNotificationsEnabled) {
+                    Label("macOS 通知", systemImage: "bell.badge")
+                }
+                .toggleStyle(.switch)
+                .disabled(!isDailyBudgetEnabled)
+            }
+
             VStack(spacing: 8) {
                 InfoRow(
                     title: "状态",
@@ -88,12 +156,6 @@ struct MenuBarContentView: View {
                     title: "状态栏显示",
                     value: menuBarDisplayMode.title,
                     systemImage: menuBarDisplayMode.systemImage
-                )
-
-                InfoRow(
-                    title: "预算",
-                    value: budgetText,
-                    systemImage: "gauge"
                 )
 
                 InfoRow(
@@ -230,10 +292,6 @@ struct MenuBarContentView: View {
         return UsageFormatting.tokens(snapshot.todayTotalTokens)
     }
 
-    private var budgetText: String {
-        UsageFormatting.percent(snapshot?.budgetPercent)
-    }
-
     private var shortWindowRemainingText: String {
         UsageFormatting.remainingPercent(snapshot?.rateLimits?.shortWindow)
     }
@@ -268,6 +326,34 @@ struct MenuBarContentView: View {
 
     private var rateLimitUpdatedText: String {
         UsageFormatting.time(snapshot?.rateLimits?.updatedAt)
+    }
+
+    private var budgetPercentText: String {
+        UsageFormatting.percent(budgetState.usedPercent)
+    }
+
+    private var budgetUsageCaption: String {
+        guard let dailyLimitTokens = budgetState.dailyLimitTokens else {
+            return "未开启"
+        }
+
+        return "\(UsageFormatting.tokens(budgetState.usedTokens)) / \(UsageFormatting.tokens(dailyLimitTokens))"
+    }
+
+    private var budgetRemainingText: String {
+        guard let remainingTokens = budgetState.remainingTokens else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(remainingTokens)
+    }
+
+    private var budgetWarningCaption: String {
+        guard let warningLimitTokens = budgetState.warningLimitTokens else {
+            return "等待设置"
+        }
+
+        return "阈值 \(budgetState.configuration.warningThresholdPercent)% · \(UsageFormatting.tokens(warningLimitTokens))"
     }
 
     private var estimatedCostText: String {
@@ -331,6 +417,8 @@ struct MenuBarContentView: View {
         case .current:
             return .green
         case .stale:
+            return .orange
+        case .warning:
             return .orange
         case .failed:
             return .red
@@ -407,13 +495,45 @@ private struct InfoRow: View {
     }
 }
 
+private struct SettingValueRow: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            Text(title)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .fontWeight(.medium)
+                .monospacedDigit()
+        }
+        .font(.callout)
+    }
+}
+
 #Preview {
     MenuBarContentView(
         snapshot: .preview,
         status: .current,
+        budgetState: UsageBudgetState(
+            configuration: UsageBudgetConfiguration(isEnabled: true),
+            usedTokens: UsageSnapshot.preview.todayTotalTokens
+        ),
         providerName: "Codex 桌面端（Mock）",
         lastErrorMessage: nil,
         menuBarDisplayMode: .constant(.currentSessionTokens),
+        isDailyBudgetEnabled: .constant(true),
+        dailyBudgetTokens: .constant(150_000),
+        warningThresholdPercent: .constant(80),
+        budgetNotificationsEnabled: .constant(false),
         onRefresh: {},
         onQuit: {}
     )

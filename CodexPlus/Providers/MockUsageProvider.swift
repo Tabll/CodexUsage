@@ -5,11 +5,13 @@ actor MockUsageProvider: UsageProvider {
 
     private let sessionId: String
     private let budgetLimitTokens: Int
+    private let calendar: Calendar
     private var inputTokens: Int
     private var outputTokens: Int
     private var cachedInputTokens: Int
     private var reasoningTokens: Int
     private var todayTotalTokens: Int
+    private var usageDay: Date
 
     init(
         sessionId: String = "mock-codex-desktop-session",
@@ -18,7 +20,8 @@ actor MockUsageProvider: UsageProvider {
         cachedInputTokens: Int = 1_600,
         reasoningTokens: Int = 520,
         todayTotalTokens: Int = 58_940,
-        budgetLimitTokens: Int = 150_000
+        budgetLimitTokens: Int = 150_000,
+        calendar: Calendar = .current
     ) {
         self.sessionId = sessionId
         self.inputTokens = inputTokens
@@ -27,9 +30,19 @@ actor MockUsageProvider: UsageProvider {
         self.reasoningTokens = reasoningTokens
         self.todayTotalTokens = todayTotalTokens
         self.budgetLimitTokens = budgetLimitTokens
+        self.calendar = calendar
+        self.usageDay = calendar.startOfDay(for: Date())
     }
 
     func fetchSnapshot() async throws -> UsageSnapshot {
+        let now = Date()
+        let currentDay = calendar.startOfDay(for: now)
+
+        if currentDay != usageDay {
+            todayTotalTokens = 0
+            usageDay = currentDay
+        }
+
         let inputDelta = Int.random(in: 120...820)
         let outputDelta = Int.random(in: 80...520)
         let cachedDelta = Int.random(in: 0...180)
@@ -44,7 +57,7 @@ actor MockUsageProvider: UsageProvider {
         return UsageSnapshot(
             sessionId: sessionId,
             providerName: name,
-            updatedAt: Date(),
+            updatedAt: now,
             inputTokens: inputTokens,
             outputTokens: outputTokens,
             cachedInputTokens: cachedInputTokens,

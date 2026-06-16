@@ -27,6 +27,23 @@ struct UsageSnapshot: Equatable, Identifiable {
         return min(Int(percentage.rounded()), 999)
     }
 
+    func withBudgetLimitTokens(_ budgetLimitTokens: Int?) -> UsageSnapshot {
+        UsageSnapshot(
+            sessionId: sessionId,
+            providerName: providerName,
+            updatedAt: updatedAt,
+            inputTokens: inputTokens,
+            outputTokens: outputTokens,
+            cachedInputTokens: cachedInputTokens,
+            reasoningTokens: reasoningTokens,
+            totalTokens: totalTokens,
+            todayTotalTokens: todayTotalTokens,
+            estimatedCost: estimatedCost,
+            budgetLimitTokens: budgetLimitTokens,
+            rateLimits: rateLimits
+        )
+    }
+
     static var preview: UsageSnapshot {
         UsageSnapshot(
             sessionId: "preview-codex-desktop-session",
@@ -85,6 +102,128 @@ struct UsageRateLimitWindow: Equatable {
 
     var remainingPercent: Int {
         min(max(100 - usedPercent, 0), 100)
+    }
+}
+
+struct UsageBudgetConfiguration: Equatable {
+    static let defaultDailyLimitTokens = 150_000
+    static let defaultWarningThresholdPercent = 80
+    static let minimumDailyLimitTokens = 1_000
+    static let maximumDailyLimitTokens = 100_000_000
+    static let minimumWarningThresholdPercent = 1
+    static let maximumWarningThresholdPercent = 100
+
+    let isEnabled: Bool
+    let dailyLimitTokens: Int
+    let warningThresholdPercent: Int
+    let notificationsEnabled: Bool
+
+    init(
+        isEnabled: Bool,
+        dailyLimitTokens: Int = Self.defaultDailyLimitTokens,
+        warningThresholdPercent: Int = Self.defaultWarningThresholdPercent,
+        notificationsEnabled: Bool = false
+    ) {
+        self.isEnabled = isEnabled
+        self.dailyLimitTokens = Self.clampedDailyLimitTokens(dailyLimitTokens)
+        self.warningThresholdPercent = Self.clampedWarningThresholdPercent(warningThresholdPercent)
+        self.notificationsEnabled = notificationsEnabled
+    }
+
+    static var disabled: UsageBudgetConfiguration {
+        UsageBudgetConfiguration(isEnabled: false)
+    }
+
+    static func clampedDailyLimitTokens(_ value: Int) -> Int {
+        min(max(value, minimumDailyLimitTokens), maximumDailyLimitTokens)
+    }
+
+    static func clampedWarningThresholdPercent(_ value: Int) -> Int {
+        min(max(value, minimumWarningThresholdPercent), maximumWarningThresholdPercent)
+    }
+}
+
+enum UsageBudgetSeverity: Int, Equatable {
+    case disabled
+    case normal
+    case warning
+    case exceeded
+
+    var isNotifiable: Bool {
+        self == .warning || self == .exceeded
+    }
+}
+
+struct UsageBudgetState: Equatable {
+    let configuration: UsageBudgetConfiguration
+    let usedTokens: Int
+
+    init(configuration: UsageBudgetConfiguration, usedTokens: Int) {
+        self.configuration = configuration
+        self.usedTokens = max(usedTokens, 0)
+    }
+
+    static var disabled: UsageBudgetState {
+        UsageBudgetState(configuration: .disabled, usedTokens: 0)
+    }
+
+    var dailyLimitTokens: Int? {
+        configuration.isEnabled ? configuration.dailyLimitTokens : nil
+    }
+
+    var usedPercent: Int? {
+        guard let dailyLimitTokens, dailyLimitTokens > 0 else {
+            return nil
+        }
+
+        let percentage = (Double(usedTokens) / Double(dailyLimitTokens)) * 100
+        return min(Int(percentage.rounded()), 999)
+    }
+
+    var remainingTokens: Int? {
+        guard let dailyLimitTokens else {
+            return nil
+        }
+
+        return max(dailyLimitTokens - usedTokens, 0)
+    }
+
+    var warningLimitTokens: Int? {
+        guard let dailyLimitTokens else {
+            return nil
+        }
+
+        let threshold = Double(configuration.warningThresholdPercent) / 100
+        return Int((Double(dailyLimitTokens) * threshold).rounded())
+    }
+
+    var severity: UsageBudgetSeverity {
+        guard let dailyLimitTokens else {
+            return .disabled
+        }
+
+        if usedTokens >= dailyLimitTokens {
+            return .exceeded
+        }
+
+        if let warningLimitTokens, usedTokens >= warningLimitTokens {
+            return .warning
+        }
+
+        return .normal
+    }
+
+    var title: String {
+        switch severity {
+        case .disabled:
+            return "未开启"
+        case .normal:
+            return "正常"
+        case .warning:
+            return "接近预算"
+        case .exceeded:
+            return "已超预算"
+        }
     }
 }
 
