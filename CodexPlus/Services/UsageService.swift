@@ -52,11 +52,12 @@ final class UsageService: ObservableObject {
     @Published private(set) var budgetState: UsageBudgetState
     @Published private(set) var lastErrorMessage: String?
 
-    private let provider: UsageProvider
+    private var provider: UsageProvider
     private let refreshInterval: TimeInterval
     private let staleInterval: TimeInterval
     private let calendar: Calendar
     private let notificationCenter: UNUserNotificationCenter
+    private let onSnapshotUpdate: (UsageSnapshot) -> Void
     private var budgetConfiguration: UsageBudgetConfiguration
     private var budgetNotificationDay: Date?
     private var lastNotifiedBudgetSeverity: UsageBudgetSeverity = .normal
@@ -67,10 +68,12 @@ final class UsageService: ObservableObject {
     init(
         provider: UsageProvider,
         budgetConfiguration: UsageBudgetConfiguration = .disabled,
+        cachedSnapshot: UsageSnapshot? = nil,
         refreshInterval: TimeInterval = 8,
         staleInterval: TimeInterval = 30,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter = .current(),
+        onSnapshotUpdate: @escaping (UsageSnapshot) -> Void = { _ in },
         startsImmediately: Bool = true
     ) {
         self.provider = provider
@@ -79,7 +82,23 @@ final class UsageService: ObservableObject {
         self.staleInterval = staleInterval
         self.calendar = calendar
         self.notificationCenter = notificationCenter
-        self.budgetState = UsageBudgetState(configuration: budgetConfiguration, usedTokens: 0)
+        self.onSnapshotUpdate = onSnapshotUpdate
+
+        let restoredSnapshot: UsageSnapshot?
+
+        if let cachedSnapshot {
+            let limitTokens = budgetConfiguration.isEnabled ? budgetConfiguration.dailyLimitTokens : nil
+            restoredSnapshot = cachedSnapshot.withBudgetLimitTokens(limitTokens)
+        } else {
+            restoredSnapshot = nil
+        }
+
+        self.snapshot = restoredSnapshot
+        self.status = restoredSnapshot == nil ? .idle : .stale
+        self.budgetState = UsageBudgetState(
+            configuration: budgetConfiguration,
+            usedTokens: restoredSnapshot?.todayTotalTokens ?? 0
+        )
 
         if startsImmediately {
             start()
@@ -159,6 +178,32 @@ final class UsageService: ObservableObject {
         sendBudgetNotificationIfNeeded(for: nextBudgetState)
     }
 
+    func updateProvider(_ provider: UsageProvider, cachedSnapshot: UsageSnapshot?) {
+        self.provider = provider
+
+        let restoredSnapshot: UsageSnapshot?
+
+        if let cachedSnapshot {
+            restoredSnapshot = applyBudgetConfiguration(to: cachedSnapshot)
+        } else {
+            restoredSnapshot = nil
+        }
+
+        snapshot = restoredSnapshot
+        budgetState = UsageBudgetState(
+            configuration: budgetConfiguration,
+            usedTokens: restoredSnapshot?.todayTotalTokens ?? 0
+        )
+        lastErrorMessage = nil
+        status = restoredSnapshot == nil ? .idle : .stale
+
+        staleTask?.cancel()
+        staleTask = nil
+        fileWatchers.removeAll()
+        startFileWatchers()
+        refresh()
+    }
+
     func refreshNow() async {
         status = .refreshing
 
@@ -176,6 +221,7 @@ final class UsageService: ObservableObject {
             status = status(for: nextBudgetState)
             scheduleStaleCheck(from: configuredSnapshot.updatedAt)
             resetBudgetNotificationStateIfNeeded(referenceDate: Date())
+            onSnapshotUpdate(configuredSnapshot)
             sendBudgetNotificationIfNeeded(for: nextBudgetState)
         } catch {
             let message = error.localizedDescription

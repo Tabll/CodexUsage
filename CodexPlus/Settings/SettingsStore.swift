@@ -9,6 +9,12 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var dataSourceMode: UsageDataSourceMode {
+        didSet {
+            defaults.set(dataSourceMode.rawValue, forKey: Keys.dataSourceMode)
+        }
+    }
+
     @Published var isDailyBudgetEnabled: Bool {
         didSet {
             defaults.set(isDailyBudgetEnabled, forKey: Keys.isDailyBudgetEnabled)
@@ -54,8 +60,11 @@ final class SettingsStore: ObservableObject {
 
         let savedMode = defaults.string(forKey: Keys.menuBarDisplayMode)
             .flatMap(MenuBarDisplayMode.init(rawValue:))
+        let savedDataSourceMode = defaults.string(forKey: Keys.dataSourceMode)
+            .flatMap(UsageDataSourceMode.init(rawValue:))
 
         self.menuBarDisplayMode = savedMode ?? .currentSessionTokens
+        self.dataSourceMode = savedDataSourceMode ?? .codexDesktop
         self.isDailyBudgetEnabled = defaults.bool(forKey: Keys.isDailyBudgetEnabled)
 
         let savedDailyBudget = defaults.object(forKey: Keys.dailyBudgetTokens) == nil
@@ -101,12 +110,51 @@ final class SettingsStore: ObservableObject {
         }
         .eraseToAnyPublisher()
     }
+
+    var dataSourceModePublisher: AnyPublisher<UsageDataSourceMode, Never> {
+        $dataSourceMode
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+
+    func cachedUsageSnapshot(for dataSourceMode: UsageDataSourceMode) -> UsageSnapshot? {
+        guard let data = defaults.data(forKey: Keys.cachedUsageSnapshot),
+              let envelope = try? Self.decoder.decode(CachedUsageSnapshotEnvelope.self, from: data),
+              envelope.dataSourceMode == dataSourceMode else {
+            return nil
+        }
+
+        return envelope.snapshot
+    }
+
+    func saveCachedUsageSnapshot(_ snapshot: UsageSnapshot, for dataSourceMode: UsageDataSourceMode) {
+        let envelope = CachedUsageSnapshotEnvelope(
+            dataSourceMode: dataSourceMode,
+            snapshot: snapshot
+        )
+
+        guard let data = try? Self.encoder.encode(envelope) else {
+            return
+        }
+
+        defaults.set(data, forKey: Keys.cachedUsageSnapshot)
+    }
+
+    private static let encoder = JSONEncoder()
+    private static let decoder = JSONDecoder()
 }
 
 private enum Keys {
     static let menuBarDisplayMode = "menuBarDisplayMode"
+    static let dataSourceMode = "dataSourceMode"
     static let isDailyBudgetEnabled = "isDailyBudgetEnabled"
     static let dailyBudgetTokens = "dailyBudgetTokens"
     static let warningThresholdPercent = "warningThresholdPercent"
     static let budgetNotificationsEnabled = "budgetNotificationsEnabled"
+    static let cachedUsageSnapshot = "cachedUsageSnapshot"
+}
+
+private struct CachedUsageSnapshotEnvelope: Codable {
+    let dataSourceMode: UsageDataSourceMode
+    let snapshot: UsageSnapshot
 }

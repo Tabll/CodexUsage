@@ -13,8 +13,12 @@ struct CodexPlusApp: App {
         _settingsStore = StateObject(wrappedValue: settingsStore)
         _usageService = StateObject(
             wrappedValue: UsageService(
-                provider: CodexDesktopUsageProvider(),
-                budgetConfiguration: settingsStore.budgetConfiguration
+                provider: Self.makeUsageProvider(for: settingsStore.dataSourceMode),
+                budgetConfiguration: settingsStore.budgetConfiguration,
+                cachedSnapshot: settingsStore.cachedUsageSnapshot(for: settingsStore.dataSourceMode),
+                onSnapshotUpdate: { snapshot in
+                    settingsStore.saveCachedUsageSnapshot(snapshot, for: settingsStore.dataSourceMode)
+                }
             )
         )
     }
@@ -28,6 +32,7 @@ struct CodexPlusApp: App {
                 providerName: usageService.providerName,
                 lastErrorMessage: usageService.lastErrorMessage,
                 menuBarDisplayMode: $settingsStore.menuBarDisplayMode,
+                dataSourceMode: $settingsStore.dataSourceMode,
                 isDailyBudgetEnabled: $settingsStore.isDailyBudgetEnabled,
                 dailyBudgetTokens: $settingsStore.dailyBudgetTokens,
                 warningThresholdPercent: $settingsStore.warningThresholdPercent,
@@ -42,6 +47,12 @@ struct CodexPlusApp: App {
             .frame(width: 320)
             .onReceive(settingsStore.budgetConfigurationPublisher) { configuration in
                 usageService.updateBudgetConfiguration(configuration)
+            }
+            .onReceive(settingsStore.dataSourceModePublisher.dropFirst()) { dataSourceMode in
+                usageService.updateProvider(
+                    Self.makeUsageProvider(for: dataSourceMode),
+                    cachedSnapshot: settingsStore.cachedUsageSnapshot(for: dataSourceMode)
+                )
             }
         } label: {
             Label(
@@ -61,5 +72,14 @@ struct CodexPlusApp: App {
         }
 
         return usageService.status.menuBarSystemImage
+    }
+
+    private static func makeUsageProvider(for dataSourceMode: UsageDataSourceMode) -> UsageProvider {
+        switch dataSourceMode {
+        case .codexDesktop:
+            return CodexDesktopUsageProvider()
+        case .mock:
+            return MockUsageProvider()
+        }
     }
 }

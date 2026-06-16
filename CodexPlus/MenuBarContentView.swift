@@ -7,6 +7,7 @@ struct MenuBarContentView: View {
     let providerName: String
     let lastErrorMessage: String?
     @Binding var menuBarDisplayMode: MenuBarDisplayMode
+    @Binding var dataSourceMode: UsageDataSourceMode
     @Binding var isDailyBudgetEnabled: Bool
     @Binding var dailyBudgetTokens: Int
     @Binding var warningThresholdPercent: Int
@@ -214,6 +215,14 @@ struct MenuBarContentView: View {
 
                 Picker("状态栏显示", selection: $menuBarDisplayMode) {
                     ForEach(MenuBarDisplayMode.allCases) { mode in
+                        Label(mode.title, systemImage: mode.systemImage)
+                            .tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Picker("数据源", selection: $dataSourceMode) {
+                    ForEach(UsageDataSourceMode.allCases) { mode in
                         Label(mode.title, systemImage: mode.systemImage)
                             .tag(mode)
                     }
@@ -530,6 +539,7 @@ private struct SettingValueRow: View {
         providerName: "Codex 桌面端（Mock）",
         lastErrorMessage: nil,
         menuBarDisplayMode: .constant(.currentSessionTokens),
+        dataSourceMode: .constant(.codexDesktop),
         isDailyBudgetEnabled: .constant(true),
         dailyBudgetTokens: .constant(150_000),
         warningThresholdPercent: .constant(80),

@@ -1,5 +1,32 @@
 import Foundation
 
+enum UsageDataSourceMode: String, CaseIterable, Codable, Identifiable {
+    case codexDesktop
+    case mock
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .codexDesktop:
+            return "Codex 桌面端"
+        case .mock:
+            return "Mock 数据"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .codexDesktop:
+            return "desktopcomputer"
+        case .mock:
+            return "wand.and.stars"
+        }
+    }
+}
+
 protocol UsageProvider {
     var name: String { get }
     var refreshHintFiles: [URL] { get }

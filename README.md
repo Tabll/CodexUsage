@@ -37,6 +37,7 @@ MVP 先回答两个问题：
   - 5 小时窗口剩余百分比和刷新时间，
   - 每周窗口剩余百分比和刷新时间，
   - 每日预算、预算阈值和通知开关，
+  - 状态栏显示模式和数据源选择，
   - 上次更新时间，
   - 当前数据源，
   - 刷新和退出操作。
@@ -96,10 +97,10 @@ UsageSnapshot
 - `CodexPlus/Models/UsageSnapshot.swift`：统一用量快照、额度窗口、预算配置、预算状态和显示格式化工具。
 - `CodexPlus/Providers/CodexDesktopUsageProvider.swift`：读取 Codex 桌面端 SQLite 日志的真实用量 provider。
 - `CodexPlus/Providers/CodexUsageLogParser.swift`：解析 `response.completed` usage JSON 和 `codex.rate_limits` 额度事件的日志解析器。
-- `CodexPlus/Providers/UsageProvider.swift`：用量数据源协议和 provider 错误类型。
+- `CodexPlus/Providers/UsageProvider.swift`：用量数据源协议、数据源模式和 provider 错误类型。
 - `CodexPlus/Providers/MockUsageProvider.swift`：开发期 Mock 数据源。
 - `CodexPlus/Services/UsageService.swift`：负责刷新、文件监听、轮询、错误状态、数据过期状态、预算状态和提醒通知。
-- `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，用于持久化状态栏显示模式、每日预算、警告阈值和通知开关。
+- `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，用于持久化状态栏显示模式、数据源选择、每日预算、警告阈值、通知开关和最后一次有效快照。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
 
 高层架构：
@@ -126,7 +127,7 @@ CodexPlusApp
 - 每日预算百分比，
 - 今日预估花费。
 
-当前 UI MVP 已支持在菜单栏弹窗中切换状态栏显示模式，选择会写入 `UserDefaults`，重启后保留。弹窗中同时展示当前会话总 token、今日总 token、5 小时与每周剩余额度、预算与提醒设置、输入/输出/缓存输入/推理 token 明细、预估花费、数据源、更新时间和手动刷新操作。
+当前 UI MVP 已支持在菜单栏弹窗中切换状态栏显示模式和数据源，选择会写入 `UserDefaults`，重启后保留。弹窗中同时展示当前会话总 token、今日总 token、5 小时与每周剩余额度、预算与提醒设置、输入/输出/缓存输入/推理 token 明细、预估花费、数据源、更新时间和手动刷新操作。
 
 预算与提醒：
 
@@ -135,6 +136,13 @@ CodexPlusApp
 - 状态栏会在达到阈值后切换为预算警告图标，超过每日预算后显示预算超限状态。
 - macOS 通知默认关闭，开启后首次达到警告阈值和首次超过预算时各提醒一次。
 - 今日用量按本机自然日重置；真实数据源由 `CodexDesktopUsageProvider` 按当天日志聚合，Mock 数据源也会在日期变化后清零今日用量。
+
+持久化与恢复：
+
+- 状态栏显示模式、数据源选择、每日预算、警告阈值和通知开关都会写入 `UserDefaults`。
+- 每次成功刷新真实用量后，会把最后一次有效 `UsageSnapshot` 以 JSON 形式缓存到本地设置中。
+- 缓存快照会记录对应的数据源模式，避免 Codex 桌面端和 Mock 数据互相复用。
+- 启动时如果存在匹配当前数据源的缓存快照，菜单栏会先恢复可显示状态，再继续刷新真实数据。
 
 弹窗面板区域：
 

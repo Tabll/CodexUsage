@@ -1,6 +1,6 @@
 import Foundation
 
-struct UsageSnapshot: Equatable, Identifiable {
+struct UsageSnapshot: Codable, Equatable, Identifiable {
     let sessionId: String
     let providerName: String
     let updatedAt: Date
@@ -62,7 +62,7 @@ struct UsageSnapshot: Equatable, Identifiable {
     }
 }
 
-struct UsageRateLimitSnapshot: Equatable {
+struct UsageRateLimitSnapshot: Codable, Equatable {
     let planType: String?
     let updatedAt: Date
     let allowed: Bool
@@ -94,7 +94,7 @@ struct UsageRateLimitSnapshot: Equatable {
     }
 }
 
-struct UsageRateLimitWindow: Equatable {
+struct UsageRateLimitWindow: Codable, Equatable {
     let usedPercent: Int
     let windowMinutes: Int
     let resetAfterSeconds: Int?
@@ -105,7 +105,7 @@ struct UsageRateLimitWindow: Equatable {
     }
 }
 
-struct UsageBudgetConfiguration: Equatable {
+struct UsageBudgetConfiguration: Codable, Equatable {
     static let defaultDailyLimitTokens = 150_000
     static let defaultWarningThresholdPercent = 80
     static let minimumDailyLimitTokens = 1_000
