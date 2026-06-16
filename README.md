@@ -88,10 +88,12 @@ UsageSnapshot
 - `CodexPlus.xcodeproj`：macOS App 工程。
 - `CodexPlus/CodexPlusApp.swift`：SwiftUI App 入口和 `MenuBarExtra` 配置。
 - `CodexPlus/MenuBarContentView.swift`：菜单栏弹窗 UI 和占位用量数据。
+- `CodexPlus/Models/MenuBarDisplayMode.swift`：状态栏显示模式，包括当前会话、今日用量、预算比例和预估花费。
 - `CodexPlus/Models/UsageSnapshot.swift`：统一用量快照模型和显示格式化工具。
 - `CodexPlus/Providers/UsageProvider.swift`：用量数据源协议和 provider 错误类型。
 - `CodexPlus/Providers/MockUsageProvider.swift`：开发期 Mock 数据源。
 - `CodexPlus/Services/UsageService.swift`：负责刷新、轮询、错误状态和数据过期状态。
+- `CodexPlus/Settings/SettingsStore.swift`：用户设置存储，目前用于持久化状态栏显示模式。
 - `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
 
 高层架构：
@@ -99,6 +101,7 @@ UsageSnapshot
 ```text
 CodexPlusApp
   -> MenuBarContentView
+  -> SettingsStore
   -> UsageService
   -> UsageProvider
   -> MockUsageProvider
@@ -114,6 +117,8 @@ CodexPlusApp
 - 当前会话 token，
 - 每日预算百分比，
 - 今日预估花费。
+
+当前 UI MVP 已支持在菜单栏弹窗中切换状态栏显示模式，选择会写入 `UserDefaults`，重启后保留。弹窗中同时展示当前会话总 token、今日总 token、输入/输出/缓存输入/推理 token 明细、预算比例、预估花费、数据源、更新时间和手动刷新操作。
 
 弹窗面板区域：
 

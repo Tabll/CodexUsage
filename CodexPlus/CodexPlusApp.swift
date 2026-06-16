@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct CodexPlusApp: App {
     @StateObject private var usageService = UsageService(provider: MockUsageProvider())
+    @StateObject private var settingsStore = SettingsStore()
 
     var body: some Scene {
         MenuBarExtra {
@@ -13,6 +14,7 @@ struct CodexPlusApp: App {
                 status: usageService.status,
                 providerName: usageService.providerName,
                 lastErrorMessage: usageService.lastErrorMessage,
+                menuBarDisplayMode: $settingsStore.menuBarDisplayMode,
                 onRefresh: {
                     usageService.refresh()
                 },
@@ -22,8 +24,22 @@ struct CodexPlusApp: App {
             )
             .frame(width: 320)
         } label: {
-            Label(usageService.menuBarTitle, systemImage: usageService.status.menuBarSystemImage)
+            Label(
+                settingsStore.menuBarDisplayMode.menuBarTitle(
+                    for: usageService.snapshot,
+                    status: usageService.status
+                ),
+                systemImage: menuBarSystemImage
+            )
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private var menuBarSystemImage: String {
+        if usageService.status == .current {
+            return settingsStore.menuBarDisplayMode.systemImage
+        }
+
+        return usageService.status.menuBarSystemImage
     }
 }

@@ -5,6 +5,7 @@ struct MenuBarContentView: View {
     let status: UsageServiceStatus
     let providerName: String
     let lastErrorMessage: String?
+    @Binding var menuBarDisplayMode: MenuBarDisplayMode
     let onRefresh: () -> Void
     let onQuit: () -> Void
 
@@ -18,14 +19,14 @@ struct MenuBarContentView: View {
                 MetricTile(
                     title: "当前会话",
                     value: currentSessionText,
-                    caption: "tokens",
+                    caption: menuBarDisplayMode == .currentSessionTokens ? "状态栏显示" : "tokens",
                     systemImage: "bolt.horizontal"
                 )
 
                 MetricTile(
                     title: "今日用量",
                     value: todayText,
-                    caption: "tokens",
+                    caption: menuBarDisplayMode == .todayTokens ? "状态栏显示" : "tokens",
                     systemImage: "chart.bar.xaxis"
                 )
             }
@@ -35,6 +36,12 @@ struct MenuBarContentView: View {
                     title: "状态",
                     value: status.title,
                     systemImage: status.menuBarSystemImage
+                )
+
+                InfoRow(
+                    title: "状态栏显示",
+                    value: menuBarDisplayMode.title,
+                    systemImage: menuBarDisplayMode.systemImage
                 )
 
                 InfoRow(
@@ -60,6 +67,50 @@ struct MenuBarContentView: View {
                     value: lastUpdatedText,
                     systemImage: "clock"
                 )
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "当前会话详情")
+
+                InfoRow(
+                    title: "输入",
+                    value: inputTokensText,
+                    systemImage: "square.and.pencil"
+                )
+
+                InfoRow(
+                    title: "输出",
+                    value: outputTokensText,
+                    systemImage: "text.bubble"
+                )
+
+                InfoRow(
+                    title: "缓存输入",
+                    value: cachedInputTokensText,
+                    systemImage: "tray.full"
+                )
+
+                InfoRow(
+                    title: "推理",
+                    value: reasoningTokensText,
+                    systemImage: "brain.head.profile"
+                )
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "设置")
+
+                Picker("状态栏显示", selection: $menuBarDisplayMode) {
+                    ForEach(MenuBarDisplayMode.allCases) { mode in
+                        Label(mode.title, systemImage: mode.systemImage)
+                            .tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
             }
 
             if let lastErrorMessage, !lastErrorMessage.isEmpty {
@@ -145,6 +196,38 @@ struct MenuBarContentView: View {
         UsageFormatting.time(snapshot?.updatedAt)
     }
 
+    private var inputTokensText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.inputTokens)
+    }
+
+    private var outputTokensText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.outputTokens)
+    }
+
+    private var cachedInputTokensText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.cachedInputTokens)
+    }
+
+    private var reasoningTokensText: String {
+        guard let snapshot else {
+            return "--"
+        }
+
+        return UsageFormatting.tokens(snapshot.reasoningTokens)
+    }
+
     private var statusColor: Color {
         switch status {
         case .idle:
@@ -158,6 +241,17 @@ struct MenuBarContentView: View {
         case .failed:
             return .red
         }
+    }
+}
+
+private struct SectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
     }
 }
 
@@ -225,9 +319,9 @@ private struct InfoRow: View {
         status: .current,
         providerName: "Codex 桌面端（Mock）",
         lastErrorMessage: nil,
+        menuBarDisplayMode: .constant(.currentSessionTokens),
         onRefresh: {},
         onQuit: {}
     )
     .frame(width: 320)
 }
-
