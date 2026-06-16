@@ -82,11 +82,18 @@ UsageSnapshot
 - 轻量设置使用 `UserDefaults`。
 - 面向分发构建，优先使用 Xcode 项目管理签名、资源和发布配置。
 
+当前脚手架：
+
+- `CodexPlus.xcodeproj`：macOS App 工程。
+- `CodexPlus/CodexPlusApp.swift`：SwiftUI App 入口和 `MenuBarExtra` 配置。
+- `CodexPlus/MenuBarContentView.swift`：菜单栏弹窗 UI 和占位用量数据。
+- `CodexPlus/Info.plist`：App 元信息，包含 `LSUIElement`，用于隐藏 Dock 图标。
+
 高层架构：
 
 ```text
 CodexPlusApp
-  -> MenuBarView
+  -> MenuBarContentView
   -> UsageViewModel
   -> UsageService
   -> UsageProvider
@@ -131,7 +138,15 @@ CodexPlusApp
 
 ## 开发说明
 
-当前仓库仍处于规划阶段。下一步可以先搭一个最小 macOS 菜单栏 App，然后把 UI 接到 Mock 数据源上，最后再接入 Codex 桌面端真实用量数据。
+当前仓库已经包含一个最小 macOS 菜单栏 App 脚手架。它使用占位用量数据显示状态栏文字和弹窗内容，后续会把占位数据替换为正式的用量模型和 Codex 桌面端数据源。
+
+本地运行：
+
+1. 使用 Xcode 打开 `CodexPlus.xcodeproj`。
+2. 选择 `CodexPlus` scheme。
+3. 运行 App 后，它会出现在 macOS 菜单栏，不显示 Dock 图标。
+
+命令行构建需要完整 Xcode 和 macOS 26 SDK。当前如果只安装 Command Line Tools，`xcodebuild` 无法构建这个 App。
 
 在写正式解析逻辑之前，需要先检查当前环境里 Codex 桌面端实际暴露了什么用量信息，并决定 `CodexDesktopUsageProvider` 应该读取：
 
