@@ -1,10 +1,10 @@
 .DS_Store
 DerivedData/
 build/
+dist/
 *.xcuserstate
 *.moved-aside
 
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
-
