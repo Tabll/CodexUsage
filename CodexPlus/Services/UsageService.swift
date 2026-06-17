@@ -45,6 +45,13 @@ enum UsageServiceStatus: Equatable {
     }
 }
 
+enum UsageServiceRefreshDefaults {
+    static let refreshInterval: TimeInterval = 30 * 60
+    static let staleInterval: TimeInterval = 30 * 60
+    static let fileChangeDebounceInterval: TimeInterval = 5
+    static let minimumAutomaticRefreshInterval: TimeInterval = 20
+}
+
 @MainActor
 final class UsageService: ObservableObject {
     @Published private(set) var snapshot: UsageSnapshot?
@@ -55,6 +62,7 @@ final class UsageService: ObservableObject {
     private var provider: UsageProvider
     private let refreshInterval: TimeInterval
     private let staleInterval: TimeInterval
+    private let fileChangeDebounceInterval: TimeInterval
     private let minimumAutomaticRefreshInterval: TimeInterval
     private let calendar: Calendar
     private let notificationCenter: UNUserNotificationCenter?
@@ -75,9 +83,10 @@ final class UsageService: ObservableObject {
         provider: UsageProvider,
         budgetConfiguration: UsageBudgetConfiguration = .disabled,
         cachedSnapshot: UsageSnapshot? = nil,
-        refreshInterval: TimeInterval = 30,
-        staleInterval: TimeInterval = 30,
-        minimumAutomaticRefreshInterval: TimeInterval = 5,
+        refreshInterval: TimeInterval = UsageServiceRefreshDefaults.refreshInterval,
+        staleInterval: TimeInterval = UsageServiceRefreshDefaults.staleInterval,
+        fileChangeDebounceInterval: TimeInterval = UsageServiceRefreshDefaults.fileChangeDebounceInterval,
+        minimumAutomaticRefreshInterval: TimeInterval = UsageServiceRefreshDefaults.minimumAutomaticRefreshInterval,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter? = nil,
         onSnapshotUpdate: @escaping (UsageSnapshot) -> Void = { _ in },
@@ -87,6 +96,7 @@ final class UsageService: ObservableObject {
         self.budgetConfiguration = budgetConfiguration
         self.refreshInterval = refreshInterval
         self.staleInterval = staleInterval
+        self.fileChangeDebounceInterval = fileChangeDebounceInterval
         self.minimumAutomaticRefreshInterval = minimumAutomaticRefreshInterval
         self.calendar = calendar
         self.notificationCenter = notificationCenter
@@ -509,9 +519,11 @@ final class UsageService: ObservableObject {
 
     private func scheduleFileChangeRefresh() {
         fileChangeRefreshTask?.cancel()
+        let fileChangeDebounceInterval = fileChangeDebounceInterval
+
         fileChangeRefreshTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(nanoseconds: 750_000_000)
+                try await Task.sleep(nanoseconds: fileChangeDebounceInterval.nanoseconds)
             } catch {
                 return
             }

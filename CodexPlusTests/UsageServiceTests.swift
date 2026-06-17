@@ -2,6 +2,13 @@ import XCTest
 
 @MainActor
 final class UsageServiceTests: XCTestCase {
+    func testDefaultRefreshCadenceUsesProductionIntervals() {
+        XCTAssertEqual(UsageServiceRefreshDefaults.refreshInterval, 30 * 60)
+        XCTAssertEqual(UsageServiceRefreshDefaults.staleInterval, 30 * 60)
+        XCTAssertEqual(UsageServiceRefreshDefaults.fileChangeDebounceInterval, 5)
+        XCTAssertEqual(UsageServiceRefreshDefaults.minimumAutomaticRefreshInterval, 20)
+    }
+
     func testRefreshPublishesSnapshotAndCallsCacheHook() async throws {
         let snapshot = makeSnapshot(todayTotalTokens: 50_000)
         var cachedSnapshot: UsageSnapshot?

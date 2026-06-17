@@ -43,7 +43,7 @@ CodexPlus 已完成 MVP 到打包发布阶段：
 - 数据能力：
   - 解析 Codex 桌面端 `response.completed` usage 事件
   - 解析 Codex 桌面端 `codex.rate_limits` 剩余额度事件
-  - 文件监听 + 轮询兜底
+  - 启动立即刷新，文件监听自动刷新，30 分钟轮询兜底
   - 缓存最后一次有效快照，启动后先恢复可显示状态
 
 ## 数据源
