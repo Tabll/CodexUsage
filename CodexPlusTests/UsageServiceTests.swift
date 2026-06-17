@@ -73,6 +73,41 @@ final class UsageServiceTests: XCTestCase {
         XCTAssertEqual(service.budgetState.severity, .warning)
     }
 
+    func testAutomaticRefreshesRespectMinimumInterval() async throws {
+        let provider = CountingUsageProvider(snapshot: makeSnapshot())
+        let service = UsageService(
+            provider: provider,
+            minimumAutomaticRefreshInterval: 0.15,
+            startsImmediately: false
+        )
+
+        service.refreshAutomatically()
+        try await waitForFetchCount(1, provider: provider)
+
+        service.refreshAutomatically()
+        service.refreshAutomatically()
+
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(provider.fetchCount, 1)
+
+        try await waitForFetchCount(2, provider: provider)
+        XCTAssertEqual(provider.fetchCount, 2)
+    }
+
+    func testManualRefreshBypassesAutomaticMinimumInterval() async {
+        let provider = CountingUsageProvider(snapshot: makeSnapshot())
+        let service = UsageService(
+            provider: provider,
+            minimumAutomaticRefreshInterval: 5,
+            startsImmediately: false
+        )
+
+        await service.refreshNow()
+        await service.refreshNow()
+
+        XCTAssertEqual(provider.fetchCount, 2)
+    }
+
     private func makeSnapshot(
         updatedAt: Date = Date(),
         todayTotalTokens: Int = 42_000
@@ -92,6 +127,20 @@ final class UsageServiceTests: XCTestCase {
             rateLimits: nil
         )
     }
+
+    private func waitForFetchCount(
+        _ expectedCount: Int,
+        provider: CountingUsageProvider,
+        timeout: TimeInterval = 1
+    ) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while provider.fetchCount < expectedCount && Date() < deadline {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertEqual(provider.fetchCount, expectedCount)
+    }
 }
 
 private struct FixedUsageProvider: UsageProvider {
@@ -108,5 +157,23 @@ private struct FixedUsageProvider: UsageProvider {
         case .failure(let error):
             throw error
         }
+    }
+}
+
+private final class CountingUsageProvider: UsageProvider {
+    let snapshot: UsageSnapshot
+    private(set) var fetchCount = 0
+
+    var name: String {
+        "Counting Provider"
+    }
+
+    init(snapshot: UsageSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    func fetchSnapshot() async throws -> UsageSnapshot {
+        fetchCount += 1
+        return snapshot
     }
 }

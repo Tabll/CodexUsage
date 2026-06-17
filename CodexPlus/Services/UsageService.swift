@@ -55,6 +55,7 @@ final class UsageService: ObservableObject {
     private var provider: UsageProvider
     private let refreshInterval: TimeInterval
     private let staleInterval: TimeInterval
+    private let minimumAutomaticRefreshInterval: TimeInterval
     private let calendar: Calendar
     private let notificationCenter: UNUserNotificationCenter?
     private let onSnapshotUpdate: (UsageSnapshot) -> Void
@@ -64,8 +65,11 @@ final class UsageService: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var staleTask: Task<Void, Never>?
     private var fileChangeRefreshTask: Task<Void, Never>?
+    private var automaticRefreshTask: Task<Void, Never>?
+    private var automaticRefreshGeneration = 0
     private var fileWatchers: [FileChangeWatcher] = []
     private var isRefreshing = false
+    private var lastRefreshStartedAt: Date?
 
     init(
         provider: UsageProvider,
@@ -73,6 +77,7 @@ final class UsageService: ObservableObject {
         cachedSnapshot: UsageSnapshot? = nil,
         refreshInterval: TimeInterval = 30,
         staleInterval: TimeInterval = 30,
+        minimumAutomaticRefreshInterval: TimeInterval = 5,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter? = nil,
         onSnapshotUpdate: @escaping (UsageSnapshot) -> Void = { _ in },
@@ -82,6 +87,7 @@ final class UsageService: ObservableObject {
         self.budgetConfiguration = budgetConfiguration
         self.refreshInterval = refreshInterval
         self.staleInterval = staleInterval
+        self.minimumAutomaticRefreshInterval = minimumAutomaticRefreshInterval
         self.calendar = calendar
         self.notificationCenter = notificationCenter
         self.onSnapshotUpdate = onSnapshotUpdate
@@ -111,6 +117,7 @@ final class UsageService: ObservableObject {
         pollingTask?.cancel()
         staleTask?.cancel()
         fileChangeRefreshTask?.cancel()
+        automaticRefreshTask?.cancel()
         fileWatchers.removeAll()
     }
 
@@ -149,12 +156,32 @@ final class UsageService: ObservableObject {
         staleTask = nil
         fileChangeRefreshTask?.cancel()
         fileChangeRefreshTask = nil
+        cancelAutomaticRefreshTask()
         fileWatchers.removeAll()
     }
 
     func refresh() {
+        cancelAutomaticRefreshTask()
+
         Task { [weak self] in
             await self?.refreshNow()
+        }
+    }
+
+    func refreshAutomatically() {
+        guard automaticRefreshTask == nil else {
+            return
+        }
+
+        automaticRefreshGeneration += 1
+        let generation = automaticRefreshGeneration
+
+        automaticRefreshTask = Task { @MainActor [weak self] in
+            defer {
+                self?.clearAutomaticRefreshTaskIfCurrent(generation: generation)
+            }
+
+            await self?.refreshAutomaticallyNow()
         }
     }
 
@@ -206,6 +233,7 @@ final class UsageService: ObservableObject {
         staleTask = nil
         fileChangeRefreshTask?.cancel()
         fileChangeRefreshTask = nil
+        cancelAutomaticRefreshTask()
         fileWatchers.removeAll()
         startFileWatchers()
         refresh()
@@ -217,6 +245,7 @@ final class UsageService: ObservableObject {
         }
 
         isRefreshing = true
+        lastRefreshStartedAt = Date()
         defer {
             isRefreshing = false
         }
@@ -256,8 +285,48 @@ final class UsageService: ObservableObject {
                 break
             }
 
-            await refreshNow()
+            await refreshAutomaticallyNow()
         }
+    }
+
+    private func refreshAutomaticallyNow() async {
+        while !Task.isCancelled {
+            let delay = delayBeforeNextAutomaticRefresh()
+
+            guard delay > 0 else {
+                await refreshNow()
+                return
+            }
+
+            do {
+                try await Task.sleep(nanoseconds: delay.nanoseconds)
+            } catch {
+                return
+            }
+        }
+    }
+
+    private func delayBeforeNextAutomaticRefresh() -> TimeInterval {
+        guard let lastRefreshStartedAt else {
+            return 0
+        }
+
+        let elapsed = Date().timeIntervalSince(lastRefreshStartedAt)
+        return max(0, minimumAutomaticRefreshInterval - elapsed)
+    }
+
+    private func cancelAutomaticRefreshTask() {
+        automaticRefreshGeneration += 1
+        automaticRefreshTask?.cancel()
+        automaticRefreshTask = nil
+    }
+
+    private func clearAutomaticRefreshTaskIfCurrent(generation: Int) {
+        guard automaticRefreshGeneration == generation else {
+            return
+        }
+
+        automaticRefreshTask = nil
     }
 
     private func scheduleStaleCheck(from updatedAt: Date) {
@@ -447,14 +516,14 @@ final class UsageService: ObservableObject {
                 return
             }
 
-            self?.refresh()
+            self?.refreshAutomatically()
         }
     }
 }
 
 private extension TimeInterval {
     var nanoseconds: UInt64 {
-        UInt64(self * 1_000_000_000)
+        UInt64(max(0, self) * 1_000_000_000)
     }
 }
 
