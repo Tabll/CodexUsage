@@ -53,6 +53,42 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var isIdlePollingEnabled: Bool {
+        didSet {
+            defaults.set(isIdlePollingEnabled, forKey: Keys.isIdlePollingEnabled)
+        }
+    }
+
+    @Published var idleRefreshIntervalMinutes: Int {
+        didSet {
+            let clampedValue = UsageServiceRefreshDefaults.clampedIdleRefreshIntervalMinutes(
+                idleRefreshIntervalMinutes
+            )
+
+            guard idleRefreshIntervalMinutes == clampedValue else {
+                idleRefreshIntervalMinutes = clampedValue
+                return
+            }
+
+            defaults.set(idleRefreshIntervalMinutes, forKey: Keys.idleRefreshIntervalMinutes)
+        }
+    }
+
+    @Published var activeRefreshIntervalSeconds: Int {
+        didSet {
+            let clampedValue = UsageServiceRefreshDefaults.clampedActiveRefreshIntervalSeconds(
+                activeRefreshIntervalSeconds
+            )
+
+            guard activeRefreshIntervalSeconds == clampedValue else {
+                activeRefreshIntervalSeconds = clampedValue
+                return
+            }
+
+            defaults.set(activeRefreshIntervalSeconds, forKey: Keys.activeRefreshIntervalSeconds)
+        }
+    }
+
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -91,6 +127,23 @@ final class SettingsStore: ObservableObject {
         )
 
         self.budgetNotificationsEnabled = defaults.bool(forKey: Keys.budgetNotificationsEnabled)
+        self.isIdlePollingEnabled = defaults.object(forKey: Keys.isIdlePollingEnabled) == nil
+            ? UsageServiceRefreshDefaults.isIdlePollingEnabled
+            : defaults.bool(forKey: Keys.isIdlePollingEnabled)
+
+        let savedIdleRefreshIntervalMinutes = defaults.object(forKey: Keys.idleRefreshIntervalMinutes) == nil
+            ? nil
+            : defaults.integer(forKey: Keys.idleRefreshIntervalMinutes)
+        self.idleRefreshIntervalMinutes = UsageServiceRefreshDefaults.clampedIdleRefreshIntervalMinutes(
+            savedIdleRefreshIntervalMinutes ?? Int(UsageServiceRefreshDefaults.idleRefreshInterval / 60)
+        )
+
+        let savedActiveRefreshIntervalSeconds = defaults.object(forKey: Keys.activeRefreshIntervalSeconds) == nil
+            ? nil
+            : defaults.integer(forKey: Keys.activeRefreshIntervalSeconds)
+        self.activeRefreshIntervalSeconds = UsageServiceRefreshDefaults.clampedActiveRefreshIntervalSeconds(
+            savedActiveRefreshIntervalSeconds ?? Int(UsageServiceRefreshDefaults.activeRefreshInterval)
+        )
     }
 
     var budgetConfiguration: UsageBudgetConfiguration {
@@ -118,6 +171,14 @@ final class SettingsStore: ObservableObject {
             )
         }
         .eraseToAnyPublisher()
+    }
+
+    var refreshConfiguration: UsageRefreshConfiguration {
+        UsageRefreshConfiguration(
+            isIdlePollingEnabled: isIdlePollingEnabled,
+            idleRefreshInterval: TimeInterval(idleRefreshIntervalMinutes * 60),
+            activeRefreshInterval: TimeInterval(activeRefreshIntervalSeconds)
+        )
     }
 
     var dataSourceModePublisher: AnyPublisher<UsageDataSourceMode, Never> {
@@ -160,6 +221,9 @@ private enum Keys {
     static let dailyBudgetTokens = "dailyBudgetTokens"
     static let warningThresholdPercent = "warningThresholdPercent"
     static let budgetNotificationsEnabled = "budgetNotificationsEnabled"
+    static let isIdlePollingEnabled = "isIdlePollingEnabled"
+    static let idleRefreshIntervalMinutes = "idleRefreshIntervalMinutes"
+    static let activeRefreshIntervalSeconds = "activeRefreshIntervalSeconds"
     static let cachedUsageSnapshot = "cachedUsageSnapshot"
     static let didMigrateDefaultDisplayMode = "didMigrateDefaultDisplayMode"
 }

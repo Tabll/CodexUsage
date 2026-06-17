@@ -3,10 +3,10 @@ import XCTest
 @MainActor
 final class UsageServiceTests: XCTestCase {
     func testDefaultRefreshCadenceUsesProductionIntervals() {
-        XCTAssertEqual(UsageServiceRefreshDefaults.refreshInterval, 30 * 60)
-        XCTAssertEqual(UsageServiceRefreshDefaults.staleInterval, 30 * 60)
+        XCTAssertTrue(UsageServiceRefreshDefaults.isIdlePollingEnabled)
+        XCTAssertEqual(UsageServiceRefreshDefaults.idleRefreshInterval, 30 * 60)
         XCTAssertEqual(UsageServiceRefreshDefaults.fileChangeDebounceInterval, 5)
-        XCTAssertEqual(UsageServiceRefreshDefaults.minimumAutomaticRefreshInterval, 20)
+        XCTAssertEqual(UsageServiceRefreshDefaults.activeRefreshInterval, 20)
     }
 
     func testRefreshPublishesSnapshotAndCallsCacheHook() async throws {
@@ -50,7 +50,10 @@ final class UsageServiceTests: XCTestCase {
     func testStaleStatusAfterInterval() async throws {
         let service = UsageService(
             provider: FixedUsageProvider(result: .success(makeSnapshot())),
-            staleInterval: 0.01,
+            refreshConfiguration: UsageRefreshConfiguration(
+                isIdlePollingEnabled: false,
+                idleRefreshInterval: 0.01
+            ),
             startsImmediately: false
         )
 
@@ -84,7 +87,10 @@ final class UsageServiceTests: XCTestCase {
         let provider = CountingUsageProvider(snapshot: makeSnapshot())
         let service = UsageService(
             provider: provider,
-            minimumAutomaticRefreshInterval: 0.15,
+            refreshConfiguration: UsageRefreshConfiguration(
+                isIdlePollingEnabled: false,
+                activeRefreshInterval: 0.15
+            ),
             startsImmediately: false
         )
 
@@ -105,7 +111,10 @@ final class UsageServiceTests: XCTestCase {
         let provider = CountingUsageProvider(snapshot: makeSnapshot())
         let service = UsageService(
             provider: provider,
-            minimumAutomaticRefreshInterval: 5,
+            refreshConfiguration: UsageRefreshConfiguration(
+                isIdlePollingEnabled: false,
+                activeRefreshInterval: 5
+            ),
             startsImmediately: false
         )
 
@@ -113,6 +122,24 @@ final class UsageServiceTests: XCTestCase {
         await service.refreshNow()
 
         XCTAssertEqual(provider.fetchCount, 2)
+    }
+
+    func testDisabledIdlePollingOnlyRefreshesOnStart() async throws {
+        let provider = CountingUsageProvider(snapshot: makeSnapshot())
+        let service = UsageService(
+            provider: provider,
+            refreshConfiguration: UsageRefreshConfiguration(
+                isIdlePollingEnabled: false,
+                idleRefreshInterval: 0.02,
+                activeRefreshInterval: 0.02
+            )
+        )
+
+        try await waitForFetchCount(1, provider: provider)
+        try await Task.sleep(nanoseconds: 80_000_000)
+
+        XCTAssertEqual(provider.fetchCount, 1)
+        service.stop()
     }
 
     private func makeSnapshot(

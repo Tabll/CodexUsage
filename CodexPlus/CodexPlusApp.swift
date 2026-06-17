@@ -16,6 +16,7 @@ struct CodexPlusApp: App {
                 provider: Self.makeUsageProvider(for: settingsStore.dataSourceMode),
                 budgetConfiguration: settingsStore.budgetConfiguration,
                 cachedSnapshot: settingsStore.cachedUsageSnapshot(for: settingsStore.dataSourceMode),
+                refreshConfiguration: settingsStore.refreshConfiguration,
                 onSnapshotUpdate: { snapshot in
                     settingsStore.saveCachedUsageSnapshot(snapshot, for: settingsStore.dataSourceMode)
                 }
@@ -60,10 +61,13 @@ struct CodexPlusApp: App {
                         Self.makeUsageProvider(for: dataSourceMode),
                         cachedSnapshot: settingsStore.cachedUsageSnapshot(for: dataSourceMode)
                     )
+                },
+                onRefreshConfigurationChange: { configuration in
+                    usageService.updateRefreshConfiguration(configuration)
                 }
             )
         }
-        .defaultSize(width: 430, height: 380)
+        .defaultSize(width: 470, height: 520)
     }
 
     private static func makeUsageProvider(for dataSourceMode: UsageDataSourceMode) -> UsageProvider {

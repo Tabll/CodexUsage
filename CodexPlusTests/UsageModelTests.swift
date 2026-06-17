@@ -82,4 +82,25 @@ final class UsageModelTests: XCTestCase {
 
         XCTAssertEqual(title, "5小时 -- 本周 --")
     }
+
+    @MainActor
+    func testSettingsStorePersistsRefreshConfiguration() {
+        let suiteName = "CodexPlusTests.RefreshConfiguration"
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        defaults.removePersistentDomain(forName: suiteName)
+
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertTrue(store.refreshConfiguration.isIdlePollingEnabled)
+        XCTAssertEqual(store.refreshConfiguration.idleRefreshInterval, 30 * 60)
+        XCTAssertEqual(store.refreshConfiguration.activeRefreshInterval, 20)
+
+        store.isIdlePollingEnabled = false
+        store.idleRefreshIntervalMinutes = 45
+        store.activeRefreshIntervalSeconds = 35
+
+        let restoredStore = SettingsStore(defaults: defaults)
+        XCTAssertFalse(restoredStore.refreshConfiguration.isIdlePollingEnabled)
+        XCTAssertEqual(restoredStore.refreshConfiguration.idleRefreshInterval, 45 * 60)
+        XCTAssertEqual(restoredStore.refreshConfiguration.activeRefreshInterval, 35)
+    }
 }

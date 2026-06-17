@@ -46,10 +46,43 @@ enum UsageServiceStatus: Equatable {
 }
 
 enum UsageServiceRefreshDefaults {
-    static let refreshInterval: TimeInterval = 30 * 60
-    static let staleInterval: TimeInterval = 30 * 60
+    static let isIdlePollingEnabled = true
+    static let idleRefreshInterval: TimeInterval = 30 * 60
     static let fileChangeDebounceInterval: TimeInterval = 5
-    static let minimumAutomaticRefreshInterval: TimeInterval = 20
+    static let activeRefreshInterval: TimeInterval = 20
+    static let minimumIdleRefreshIntervalMinutes = 1
+    static let maximumIdleRefreshIntervalMinutes = 240
+    static let minimumActiveRefreshIntervalSeconds = 5
+    static let maximumActiveRefreshIntervalSeconds = 300
+
+    static func clampedIdleRefreshIntervalMinutes(_ value: Int) -> Int {
+        min(max(value, minimumIdleRefreshIntervalMinutes), maximumIdleRefreshIntervalMinutes)
+    }
+
+    static func clampedActiveRefreshIntervalSeconds(_ value: Int) -> Int {
+        min(max(value, minimumActiveRefreshIntervalSeconds), maximumActiveRefreshIntervalSeconds)
+    }
+}
+
+struct UsageRefreshConfiguration: Equatable {
+    let isIdlePollingEnabled: Bool
+    let idleRefreshInterval: TimeInterval
+    let fileChangeDebounceInterval: TimeInterval
+    let activeRefreshInterval: TimeInterval
+
+    init(
+        isIdlePollingEnabled: Bool = UsageServiceRefreshDefaults.isIdlePollingEnabled,
+        idleRefreshInterval: TimeInterval = UsageServiceRefreshDefaults.idleRefreshInterval,
+        fileChangeDebounceInterval: TimeInterval = UsageServiceRefreshDefaults.fileChangeDebounceInterval,
+        activeRefreshInterval: TimeInterval = UsageServiceRefreshDefaults.activeRefreshInterval
+    ) {
+        self.isIdlePollingEnabled = isIdlePollingEnabled
+        self.idleRefreshInterval = max(0, idleRefreshInterval)
+        self.fileChangeDebounceInterval = max(0, fileChangeDebounceInterval)
+        self.activeRefreshInterval = max(0, activeRefreshInterval)
+    }
+
+    static let `default` = UsageRefreshConfiguration()
 }
 
 @MainActor
@@ -60,16 +93,15 @@ final class UsageService: ObservableObject {
     @Published private(set) var lastErrorMessage: String?
 
     private var provider: UsageProvider
-    private let refreshInterval: TimeInterval
-    private let staleInterval: TimeInterval
-    private let fileChangeDebounceInterval: TimeInterval
-    private let minimumAutomaticRefreshInterval: TimeInterval
+    private var refreshConfiguration: UsageRefreshConfiguration
     private let calendar: Calendar
     private let notificationCenter: UNUserNotificationCenter?
     private let onSnapshotUpdate: (UsageSnapshot) -> Void
     private var budgetConfiguration: UsageBudgetConfiguration
     private var budgetNotificationDay: Date?
     private var lastNotifiedBudgetSeverity: UsageBudgetSeverity = .normal
+    private var isStarted = false
+    private var startupRefreshTask: Task<Void, Never>?
     private var pollingTask: Task<Void, Never>?
     private var staleTask: Task<Void, Never>?
     private var fileChangeRefreshTask: Task<Void, Never>?
@@ -83,10 +115,7 @@ final class UsageService: ObservableObject {
         provider: UsageProvider,
         budgetConfiguration: UsageBudgetConfiguration = .disabled,
         cachedSnapshot: UsageSnapshot? = nil,
-        refreshInterval: TimeInterval = UsageServiceRefreshDefaults.refreshInterval,
-        staleInterval: TimeInterval = UsageServiceRefreshDefaults.staleInterval,
-        fileChangeDebounceInterval: TimeInterval = UsageServiceRefreshDefaults.fileChangeDebounceInterval,
-        minimumAutomaticRefreshInterval: TimeInterval = UsageServiceRefreshDefaults.minimumAutomaticRefreshInterval,
+        refreshConfiguration: UsageRefreshConfiguration = .default,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter? = nil,
         onSnapshotUpdate: @escaping (UsageSnapshot) -> Void = { _ in },
@@ -94,10 +123,7 @@ final class UsageService: ObservableObject {
     ) {
         self.provider = provider
         self.budgetConfiguration = budgetConfiguration
-        self.refreshInterval = refreshInterval
-        self.staleInterval = staleInterval
-        self.fileChangeDebounceInterval = fileChangeDebounceInterval
-        self.minimumAutomaticRefreshInterval = minimumAutomaticRefreshInterval
+        self.refreshConfiguration = refreshConfiguration
         self.calendar = calendar
         self.notificationCenter = notificationCenter
         self.onSnapshotUpdate = onSnapshotUpdate
@@ -124,6 +150,7 @@ final class UsageService: ObservableObject {
     }
 
     deinit {
+        startupRefreshTask?.cancel()
         pollingTask?.cancel()
         staleTask?.cancel()
         fileChangeRefreshTask?.cancel()
@@ -148,18 +175,23 @@ final class UsageService: ObservableObject {
     }
 
     func start() {
-        guard pollingTask == nil else {
+        guard !isStarted else {
             return
         }
 
+        isStarted = true
         startFileWatchers()
-
-        pollingTask = Task { [weak self] in
-            await self?.runPollingLoop()
+        startupRefreshTask = Task { [weak self] in
+            await self?.refreshNow()
         }
+
+        startPollingLoopIfNeeded()
     }
 
     func stop() {
+        isStarted = false
+        startupRefreshTask?.cancel()
+        startupRefreshTask = nil
         pollingTask?.cancel()
         pollingTask = nil
         staleTask?.cancel()
@@ -218,6 +250,19 @@ final class UsageService: ObservableObject {
         }
 
         sendBudgetNotificationIfNeeded(for: nextBudgetState)
+    }
+
+    func updateRefreshConfiguration(_ configuration: UsageRefreshConfiguration) {
+        guard refreshConfiguration != configuration else {
+            return
+        }
+
+        refreshConfiguration = configuration
+        restartPollingLoopIfNeeded()
+
+        if let snapshot {
+            scheduleStaleCheck(from: snapshot.updatedAt)
+        }
     }
 
     func updateProvider(_ provider: UsageProvider, cachedSnapshot: UsageSnapshot?) {
@@ -286,11 +331,9 @@ final class UsageService: ObservableObject {
     }
 
     private func runPollingLoop() async {
-        await refreshNow()
-
         while !Task.isCancelled {
             do {
-                try await Task.sleep(nanoseconds: refreshInterval.nanoseconds)
+                try await Task.sleep(nanoseconds: refreshConfiguration.idleRefreshInterval.nanoseconds)
             } catch {
                 break
             }
@@ -322,7 +365,7 @@ final class UsageService: ObservableObject {
         }
 
         let elapsed = Date().timeIntervalSince(lastRefreshStartedAt)
-        return max(0, minimumAutomaticRefreshInterval - elapsed)
+        return max(0, refreshConfiguration.activeRefreshInterval - elapsed)
     }
 
     private func cancelAutomaticRefreshTask() {
@@ -339,9 +382,27 @@ final class UsageService: ObservableObject {
         automaticRefreshTask = nil
     }
 
+    private func startPollingLoopIfNeeded() {
+        guard isStarted,
+              refreshConfiguration.isIdlePollingEnabled,
+              pollingTask == nil else {
+            return
+        }
+
+        pollingTask = Task { [weak self] in
+            await self?.runPollingLoop()
+        }
+    }
+
+    private func restartPollingLoopIfNeeded() {
+        pollingTask?.cancel()
+        pollingTask = nil
+        startPollingLoopIfNeeded()
+    }
+
     private func scheduleStaleCheck(from updatedAt: Date) {
         staleTask?.cancel()
-        let staleInterval = staleInterval
+        let staleInterval = refreshConfiguration.idleRefreshInterval
 
         staleTask = Task { @MainActor [weak self] in
             do {
@@ -359,7 +420,7 @@ final class UsageService: ObservableObject {
             return
         }
 
-        if Date().timeIntervalSince(updatedAt) >= staleInterval {
+        if Date().timeIntervalSince(updatedAt) >= refreshConfiguration.idleRefreshInterval {
             status = .stale
         }
     }
@@ -519,7 +580,7 @@ final class UsageService: ObservableObject {
 
     private func scheduleFileChangeRefresh() {
         fileChangeRefreshTask?.cancel()
-        let fileChangeDebounceInterval = fileChangeDebounceInterval
+        let fileChangeDebounceInterval = refreshConfiguration.fileChangeDebounceInterval
 
         fileChangeRefreshTask = Task { @MainActor [weak self] in
             do {

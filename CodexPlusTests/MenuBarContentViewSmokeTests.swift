@@ -33,10 +33,11 @@ final class MenuBarContentViewSmokeTests: XCTestCase {
         let view = SettingsView(
             settingsStore: SettingsStore(defaults: defaults),
             onBudgetConfigurationChange: { _ in },
-            onDataSourceModeChange: { _ in }
+            onDataSourceModeChange: { _ in },
+            onRefreshConfigurationChange: { _ in }
         )
         let hostingView = NSHostingView(rootView: view)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 430, height: 420)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 470, height: 520)
 
         hostingView.layoutSubtreeIfNeeded()
 
