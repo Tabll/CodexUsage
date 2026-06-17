@@ -1,6 +1,7 @@
 import Foundation
 
 enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
+    case rateLimitSummary
     case currentSessionTokens
     case todayTokens
     case shortWindowRemaining
@@ -14,6 +15,8 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .rateLimitSummary:
+            return "5 小时 + 本周"
         case .currentSessionTokens:
             return "当前会话"
         case .todayTokens:
@@ -31,6 +34,8 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .rateLimitSummary:
+            return "menubar.rectangle"
         case .currentSessionTokens:
             return "bolt.horizontal.circle.fill"
         case .todayTokens:
@@ -52,10 +57,16 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
         }
 
         guard let snapshot else {
+            if self == .rateLimitSummary {
+                return UsageFormatting.rateLimitSummary(nil)
+            }
+
             return "CodexPlus"
         }
 
         switch self {
+        case .rateLimitSummary:
+            return UsageFormatting.rateLimitSummary(snapshot.rateLimits)
         case .currentSessionTokens:
             return UsageFormatting.tokens(snapshot.totalTokens)
         case .todayTokens:

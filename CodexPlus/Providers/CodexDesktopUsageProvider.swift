@@ -11,7 +11,7 @@ struct CodexDesktopUsageProvider: UsageProvider {
     init(
         databaseCandidates: [URL] = Self.defaultDatabaseCandidates(),
         calendar: Calendar = .current,
-        recentRowLimit: Int = 5_000
+        recentRowLimit: Int = 2_000
     ) {
         self.databaseCandidates = databaseCandidates
         self.calendar = calendar
@@ -123,14 +123,12 @@ struct CodexDesktopUsageProvider: UsageProvider {
             sqlite3_close(database)
         }
 
+        sqlite3_busy_timeout(database, 100)
+
         let sql = """
         SELECT ts, feedback_log_body
         FROM logs
         WHERE target = 'codex_api::endpoint::responses_websocket'
-          AND (
-            feedback_log_body LIKE '%"usage":%'
-            OR feedback_log_body LIKE '%"type":"codex.rate_limits"%'
-          )
         ORDER BY id DESC
         LIMIT ?;
         """

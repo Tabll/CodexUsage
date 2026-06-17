@@ -1,233 +1,51 @@
+import AppKit
 import SwiftUI
 
 struct MenuBarContentView: View {
+    @Environment(\.openWindow) private var openWindow
+
     let snapshot: UsageSnapshot?
     let status: UsageServiceStatus
     let budgetState: UsageBudgetState
     let providerName: String
     let lastErrorMessage: String?
-    @Binding var menuBarDisplayMode: MenuBarDisplayMode
-    @Binding var dataSourceMode: UsageDataSourceMode
-    @Binding var isDailyBudgetEnabled: Bool
-    @Binding var dailyBudgetTokens: Int
-    @Binding var warningThresholdPercent: Int
-    @Binding var budgetNotificationsEnabled: Bool
     let onRefresh: () -> Void
     let onQuit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             header
 
-            Divider()
-
             HStack(spacing: 10) {
-                MetricTile(
-                    title: "当前会话",
-                    value: currentSessionText,
-                    caption: menuBarDisplayMode == .currentSessionTokens ? "状态栏显示" : "tokens",
-                    systemImage: "bolt.horizontal"
+                RateLimitTile(
+                    title: "5小时",
+                    value: shortWindowRemainingText,
+                    caption: shortWindowResetText,
+                    systemImage: "hourglass"
                 )
 
-                MetricTile(
-                    title: "今日用量",
-                    value: todayText,
-                    caption: menuBarDisplayMode == .todayTokens ? "状态栏显示" : "tokens",
-                    systemImage: "chart.bar.xaxis"
+                RateLimitTile(
+                    title: "本周",
+                    value: weeklyWindowRemainingText,
+                    caption: weeklyWindowResetText,
+                    systemImage: "calendar"
                 )
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "剩余额度")
-
-                HStack(spacing: 10) {
-                    MetricTile(
-                        title: "5 小时",
-                        value: shortWindowRemainingText,
-                        caption: shortWindowResetText,
-                        systemImage: "hourglass"
-                    )
-
-                    MetricTile(
-                        title: "每周",
-                        value: weeklyWindowRemainingText,
-                        caption: weeklyWindowResetText,
-                        systemImage: "calendar"
-                    )
-                }
-
-                InfoRow(
-                    title: "计划",
-                    value: planTypeText,
-                    systemImage: "person.crop.circle.badge.checkmark"
-                )
-
-                InfoRow(
-                    title: "额度状态",
-                    value: rateLimitStatusText,
-                    systemImage: "checkmark.seal"
-                )
-
-                InfoRow(
-                    title: "额度更新时间",
-                    value: rateLimitUpdatedText,
-                    systemImage: "clock.arrow.circlepath"
-                )
+            VStack(spacing: 7) {
+                CompactInfoRow(title: "状态", value: status.title, systemImage: status.menuBarSystemImage)
+                CompactInfoRow(title: "今日", value: todayText, systemImage: "chart.bar.xaxis")
+                CompactInfoRow(title: "当前会话", value: currentSessionText, systemImage: "bolt.horizontal")
+                CompactInfoRow(title: "数据源", value: providerName, systemImage: "desktopcomputer")
+                CompactInfoRow(title: "更新时间", value: lastUpdatedText, systemImage: "clock")
 
                 if let monthlyWindow = snapshot?.rateLimits?.monthlyWindow {
-                    InfoRow(
-                        title: "月度窗口",
+                    CompactInfoRow(
+                        title: "月度",
                         value: monthlyWindowText(monthlyWindow),
                         systemImage: "calendar.badge.clock"
                     )
                 }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "预算与提醒")
-
-                HStack(spacing: 10) {
-                    MetricTile(
-                        title: "预算",
-                        value: budgetPercentText,
-                        caption: budgetUsageCaption,
-                        systemImage: "gauge"
-                    )
-
-                    MetricTile(
-                        title: "剩余",
-                        value: budgetRemainingText,
-                        caption: budgetWarningCaption,
-                        systemImage: "bell.badge"
-                    )
-                }
-
-                InfoRow(
-                    title: "预算状态",
-                    value: budgetState.title,
-                    systemImage: "checkmark.shield"
-                )
-
-                Toggle(isOn: $isDailyBudgetEnabled) {
-                    Label("每日预算", systemImage: "gauge")
-                }
-                .toggleStyle(.switch)
-
-                Stepper(
-                    value: $dailyBudgetTokens,
-                    in: UsageBudgetConfiguration.minimumDailyLimitTokens...UsageBudgetConfiguration.maximumDailyLimitTokens,
-                    step: 10_000
-                ) {
-                    SettingValueRow(
-                        title: "预算额度",
-                        value: UsageFormatting.tokens(dailyBudgetTokens),
-                        systemImage: "number"
-                    )
-                }
-                .disabled(!isDailyBudgetEnabled)
-
-                Stepper(
-                    value: $warningThresholdPercent,
-                    in: UsageBudgetConfiguration.minimumWarningThresholdPercent...UsageBudgetConfiguration.maximumWarningThresholdPercent,
-                    step: 5
-                ) {
-                    SettingValueRow(
-                        title: "警告阈值",
-                        value: "\(warningThresholdPercent)%",
-                        systemImage: "bell"
-                    )
-                }
-                .disabled(!isDailyBudgetEnabled)
-
-                Toggle(isOn: $budgetNotificationsEnabled) {
-                    Label("macOS 通知", systemImage: "bell.badge")
-                }
-                .toggleStyle(.switch)
-                .disabled(!isDailyBudgetEnabled)
-            }
-
-            VStack(spacing: 8) {
-                InfoRow(
-                    title: "状态",
-                    value: status.title,
-                    systemImage: status.menuBarSystemImage
-                )
-
-                InfoRow(
-                    title: "状态栏显示",
-                    value: menuBarDisplayMode.title,
-                    systemImage: menuBarDisplayMode.systemImage
-                )
-
-                InfoRow(
-                    title: "预估花费",
-                    value: estimatedCostText,
-                    systemImage: "creditcard"
-                )
-
-                InfoRow(
-                    title: "数据源",
-                    value: providerName,
-                    systemImage: "desktopcomputer"
-                )
-
-                InfoRow(
-                    title: "更新时间",
-                    value: lastUpdatedText,
-                    systemImage: "clock"
-                )
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "当前会话详情")
-
-                InfoRow(
-                    title: "输入",
-                    value: inputTokensText,
-                    systemImage: "square.and.pencil"
-                )
-
-                InfoRow(
-                    title: "输出",
-                    value: outputTokensText,
-                    systemImage: "text.bubble"
-                )
-
-                InfoRow(
-                    title: "缓存输入",
-                    value: cachedInputTokensText,
-                    systemImage: "tray.full"
-                )
-
-                InfoRow(
-                    title: "推理",
-                    value: reasoningTokensText,
-                    systemImage: "brain.head.profile"
-                )
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "设置")
-
-                Picker("状态栏显示", selection: $menuBarDisplayMode) {
-                    ForEach(MenuBarDisplayMode.allCases) { mode in
-                        Label(mode.title, systemImage: mode.systemImage)
-                            .tag(mode)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                Picker("数据源", selection: $dataSourceMode) {
-                    ForEach(UsageDataSourceMode.allCases) { mode in
-                        Label(mode.title, systemImage: mode.systemImage)
-                            .tag(mode)
-                    }
-                }
-                .pickerStyle(.menu)
             }
 
             if let lastErrorMessage, !lastErrorMessage.isEmpty {
@@ -240,9 +58,16 @@ struct MenuBarContentView: View {
 
             Divider()
 
-            HStack {
+            HStack(spacing: 10) {
                 Button(action: onRefresh) {
                     Label("刷新", systemImage: "arrow.clockwise")
+                }
+
+                Button {
+                    openWindow(id: "settings")
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                } label: {
+                    Label("设置", systemImage: "gearshape")
                 }
 
                 Spacer()
@@ -252,37 +77,41 @@ struct MenuBarContentView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(14)
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "bolt.horizontal.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.tint)
-
             VStack(alignment: .leading, spacing: 2) {
-                Text("CodexPlus")
+                Text(UsageFormatting.rateLimitSummary(snapshot?.rateLimits))
                     .font(.headline)
+                    .monospacedDigit()
 
-                Text("Codex 桌面端用量")
+                Text(rateLimitSubhead)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
 
-            Text(status.title)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(statusColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(statusColor.opacity(0.12))
-                )
+            Circle()
+                .fill(statusColor)
+                .frame(width: 9, height: 9)
+                .accessibilityLabel(status.title)
         }
+    }
+
+    private var rateLimitSubhead: String {
+        guard let rateLimits = snapshot?.rateLimits else {
+            return "等待 Codex 桌面端用量数据"
+        }
+
+        if rateLimits.limitReached {
+            return "额度已达上限"
+        }
+
+        return rateLimits.allowed ? "额度可用" : "额度受限"
     }
 
     private var currentSessionText: String {
@@ -317,92 +146,8 @@ struct MenuBarContentView: View {
         resetCaption(for: snapshot?.rateLimits?.weeklyWindow)
     }
 
-    private var planTypeText: String {
-        snapshot?.rateLimits?.planType ?? "--"
-    }
-
-    private var rateLimitStatusText: String {
-        guard let rateLimits = snapshot?.rateLimits else {
-            return "等待数据"
-        }
-
-        if rateLimits.limitReached {
-            return "已达上限"
-        }
-
-        return rateLimits.allowed ? "可用" : "受限"
-    }
-
-    private var rateLimitUpdatedText: String {
-        UsageFormatting.time(snapshot?.rateLimits?.updatedAt)
-    }
-
-    private var budgetPercentText: String {
-        UsageFormatting.percent(budgetState.usedPercent)
-    }
-
-    private var budgetUsageCaption: String {
-        guard let dailyLimitTokens = budgetState.dailyLimitTokens else {
-            return "未开启"
-        }
-
-        return "\(UsageFormatting.tokens(budgetState.usedTokens)) / \(UsageFormatting.tokens(dailyLimitTokens))"
-    }
-
-    private var budgetRemainingText: String {
-        guard let remainingTokens = budgetState.remainingTokens else {
-            return "--"
-        }
-
-        return UsageFormatting.tokens(remainingTokens)
-    }
-
-    private var budgetWarningCaption: String {
-        guard let warningLimitTokens = budgetState.warningLimitTokens else {
-            return "等待设置"
-        }
-
-        return "阈值 \(budgetState.configuration.warningThresholdPercent)% · \(UsageFormatting.tokens(warningLimitTokens))"
-    }
-
-    private var estimatedCostText: String {
-        UsageFormatting.cost(snapshot?.estimatedCost)
-    }
-
     private var lastUpdatedText: String {
         UsageFormatting.time(snapshot?.updatedAt)
-    }
-
-    private var inputTokensText: String {
-        guard let snapshot else {
-            return "--"
-        }
-
-        return UsageFormatting.tokens(snapshot.inputTokens)
-    }
-
-    private var outputTokensText: String {
-        guard let snapshot else {
-            return "--"
-        }
-
-        return UsageFormatting.tokens(snapshot.outputTokens)
-    }
-
-    private var cachedInputTokensText: String {
-        guard let snapshot else {
-            return "--"
-        }
-
-        return UsageFormatting.tokens(snapshot.cachedInputTokens)
-    }
-
-    private var reasoningTokensText: String {
-        guard let snapshot else {
-            return "--"
-        }
-
-        return UsageFormatting.tokens(snapshot.reasoningTokens)
     }
 
     private func resetCaption(for window: UsageRateLimitWindow?) -> String {
@@ -414,7 +159,7 @@ struct MenuBarContentView: View {
     }
 
     private func monthlyWindowText(_ window: UsageRateLimitWindow) -> String {
-        "\(window.remainingPercent)% · 刷新 \(UsageFormatting.time(window.resetAt))"
+        "\(window.remainingPercent)% · \(UsageFormatting.time(window.resetAt))"
     }
 
     private var statusColor: Color {
@@ -435,7 +180,107 @@ struct MenuBarContentView: View {
     }
 }
 
-private struct SectionHeader: View {
+struct SettingsView: View {
+    @ObservedObject var settingsStore: SettingsStore
+
+    let onBudgetConfigurationChange: (UsageBudgetConfiguration) -> Void
+    let onDataSourceModeChange: (UsageDataSourceMode) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("CodexPlus 设置")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionHeader(title: "状态栏")
+
+                Picker(selection: $settingsStore.menuBarDisplayMode) {
+                    ForEach(MenuBarDisplayMode.allCases) { mode in
+                        Label(mode.title, systemImage: mode.systemImage)
+                            .tag(mode)
+                    }
+                } label: {
+                    SettingsValueRow(
+                        title: "显示内容",
+                        value: settingsStore.menuBarDisplayMode.title,
+                        systemImage: "menubar.rectangle"
+                    )
+                }
+                .pickerStyle(.menu)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionHeader(title: "数据源")
+
+                Picker(selection: $settingsStore.dataSourceMode) {
+                    ForEach(UsageDataSourceMode.allCases) { mode in
+                        Label(mode.title, systemImage: mode.systemImage)
+                            .tag(mode)
+                    }
+                } label: {
+                    SettingsValueRow(
+                        title: "用量来源",
+                        value: settingsStore.dataSourceMode.title,
+                        systemImage: "desktopcomputer"
+                    )
+                }
+                .pickerStyle(.menu)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionHeader(title: "预算与提醒")
+
+                Toggle(isOn: $settingsStore.isDailyBudgetEnabled) {
+                    Label("每日预算", systemImage: "gauge")
+                }
+                .toggleStyle(.switch)
+
+                Stepper(
+                    value: $settingsStore.dailyBudgetTokens,
+                    in: UsageBudgetConfiguration.minimumDailyLimitTokens...UsageBudgetConfiguration.maximumDailyLimitTokens,
+                    step: 10_000
+                ) {
+                    SettingsValueRow(
+                        title: "预算额度",
+                        value: UsageFormatting.tokens(settingsStore.dailyBudgetTokens),
+                        systemImage: "number"
+                    )
+                }
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+
+                Stepper(
+                    value: $settingsStore.warningThresholdPercent,
+                    in: UsageBudgetConfiguration.minimumWarningThresholdPercent...UsageBudgetConfiguration.maximumWarningThresholdPercent,
+                    step: 5
+                ) {
+                    SettingsValueRow(
+                        title: "警告阈值",
+                        value: "\(settingsStore.warningThresholdPercent)%",
+                        systemImage: "bell"
+                    )
+                }
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+
+                Toggle(isOn: $settingsStore.budgetNotificationsEnabled) {
+                    Label("macOS 通知", systemImage: "bell.badge")
+                }
+                .toggleStyle(.switch)
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+            }
+        }
+        .padding(22)
+        .frame(width: 430)
+        .onChange(of: settingsStore.budgetConfiguration) { _, configuration in
+            onBudgetConfigurationChange(configuration)
+        }
+        .onChange(of: settingsStore.dataSourceMode) { _, dataSourceMode in
+            onDataSourceModeChange(dataSourceMode)
+        }
+    }
+}
+
+private struct SettingsSectionHeader: View {
     let title: String
 
     var body: some View {
@@ -446,14 +291,14 @@ private struct SectionHeader: View {
     }
 }
 
-private struct MetricTile: View {
+private struct RateLimitTile: View {
     let title: String
     let value: String
     let caption: String
     let systemImage: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
                     .foregroundStyle(.secondary)
@@ -470,9 +315,10 @@ private struct MetricTile: View {
             Text(caption)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor))
@@ -480,7 +326,7 @@ private struct MetricTile: View {
     }
 }
 
-private struct InfoRow: View {
+private struct CompactInfoRow: View {
     let title: String
     let value: String
     let systemImage: String
@@ -499,12 +345,13 @@ private struct InfoRow: View {
             Text(value)
                 .fontWeight(.medium)
                 .lineLimit(1)
+                .truncationMode(.middle)
         }
         .font(.callout)
     }
 }
 
-private struct SettingValueRow: View {
+private struct SettingsValueRow: View {
     let title: String
     let value: String
     let systemImage: String
@@ -528,7 +375,7 @@ private struct SettingValueRow: View {
     }
 }
 
-#Preview {
+#Preview("Menu") {
     MenuBarContentView(
         snapshot: .preview,
         status: .current,
@@ -538,14 +385,16 @@ private struct SettingValueRow: View {
         ),
         providerName: "Codex 桌面端（Mock）",
         lastErrorMessage: nil,
-        menuBarDisplayMode: .constant(.currentSessionTokens),
-        dataSourceMode: .constant(.codexDesktop),
-        isDailyBudgetEnabled: .constant(true),
-        dailyBudgetTokens: .constant(150_000),
-        warningThresholdPercent: .constant(80),
-        budgetNotificationsEnabled: .constant(false),
         onRefresh: {},
         onQuit: {}
     )
-    .frame(width: 320)
+    .frame(width: 300)
+}
+
+#Preview("Settings") {
+    SettingsView(
+        settingsStore: SettingsStore(defaults: UserDefaults(suiteName: "CodexPlus.preview") ?? .standard),
+        onBudgetConfigurationChange: { _ in },
+        onDataSourceModeChange: { _ in }
+    )
 }

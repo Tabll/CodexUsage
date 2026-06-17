@@ -63,13 +63,15 @@ final class UsageService: ObservableObject {
     private var lastNotifiedBudgetSeverity: UsageBudgetSeverity = .normal
     private var pollingTask: Task<Void, Never>?
     private var staleTask: Task<Void, Never>?
+    private var fileChangeRefreshTask: Task<Void, Never>?
     private var fileWatchers: [FileChangeWatcher] = []
+    private var isRefreshing = false
 
     init(
         provider: UsageProvider,
         budgetConfiguration: UsageBudgetConfiguration = .disabled,
         cachedSnapshot: UsageSnapshot? = nil,
-        refreshInterval: TimeInterval = 8,
+        refreshInterval: TimeInterval = 30,
         staleInterval: TimeInterval = 30,
         calendar: Calendar = .current,
         notificationCenter: UNUserNotificationCenter? = nil,
@@ -108,6 +110,7 @@ final class UsageService: ObservableObject {
     deinit {
         pollingTask?.cancel()
         staleTask?.cancel()
+        fileChangeRefreshTask?.cancel()
         fileWatchers.removeAll()
     }
 
@@ -144,6 +147,8 @@ final class UsageService: ObservableObject {
         pollingTask = nil
         staleTask?.cancel()
         staleTask = nil
+        fileChangeRefreshTask?.cancel()
+        fileChangeRefreshTask = nil
         fileWatchers.removeAll()
     }
 
@@ -199,12 +204,23 @@ final class UsageService: ObservableObject {
 
         staleTask?.cancel()
         staleTask = nil
+        fileChangeRefreshTask?.cancel()
+        fileChangeRefreshTask = nil
         fileWatchers.removeAll()
         startFileWatchers()
         refresh()
     }
 
     func refreshNow() async {
+        guard !isRefreshing else {
+            return
+        }
+
+        isRefreshing = true
+        defer {
+            isRefreshing = false
+        }
+
         status = .refreshing
 
         do {
@@ -416,9 +432,22 @@ final class UsageService: ObservableObject {
         fileWatchers = provider.refreshHintFiles.compactMap { url in
             FileChangeWatcher(url: url) { [weak self] in
                 Task { @MainActor in
-                    self?.refresh()
+                    self?.scheduleFileChangeRefresh()
                 }
             }
+        }
+    }
+
+    private func scheduleFileChangeRefresh() {
+        fileChangeRefreshTask?.cancel()
+        fileChangeRefreshTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 750_000_000)
+            } catch {
+                return
+            }
+
+            self?.refresh()
         }
     }
 }

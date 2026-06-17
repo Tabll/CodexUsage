@@ -31,12 +31,6 @@ struct CodexPlusApp: App {
                 budgetState: usageService.budgetState,
                 providerName: usageService.providerName,
                 lastErrorMessage: usageService.lastErrorMessage,
-                menuBarDisplayMode: $settingsStore.menuBarDisplayMode,
-                dataSourceMode: $settingsStore.dataSourceMode,
-                isDailyBudgetEnabled: $settingsStore.isDailyBudgetEnabled,
-                dailyBudgetTokens: $settingsStore.dailyBudgetTokens,
-                warningThresholdPercent: $settingsStore.warningThresholdPercent,
-                budgetNotificationsEnabled: $settingsStore.budgetNotificationsEnabled,
                 onRefresh: {
                     usageService.refresh()
                 },
@@ -44,34 +38,32 @@ struct CodexPlusApp: App {
                     NSApplication.shared.terminate(nil)
                 }
             )
-            .frame(width: 320)
-            .onReceive(settingsStore.budgetConfigurationPublisher) { configuration in
-                usageService.updateBudgetConfiguration(configuration)
-            }
-            .onReceive(settingsStore.dataSourceModePublisher.dropFirst()) { dataSourceMode in
-                usageService.updateProvider(
-                    Self.makeUsageProvider(for: dataSourceMode),
-                    cachedSnapshot: settingsStore.cachedUsageSnapshot(for: dataSourceMode)
-                )
-            }
+            .frame(width: 300)
         } label: {
-            Label(
+            Text(
                 settingsStore.menuBarDisplayMode.menuBarTitle(
                     for: usageService.snapshot,
                     status: usageService.status
-                ),
-                systemImage: menuBarSystemImage
+                )
             )
         }
         .menuBarExtraStyle(.window)
-    }
 
-    private var menuBarSystemImage: String {
-        if usageService.status == .current {
-            return settingsStore.menuBarDisplayMode.systemImage
+        Window("CodexPlus 设置", id: "settings") {
+            SettingsView(
+                settingsStore: settingsStore,
+                onBudgetConfigurationChange: { configuration in
+                    usageService.updateBudgetConfiguration(configuration)
+                },
+                onDataSourceModeChange: { dataSourceMode in
+                    usageService.updateProvider(
+                        Self.makeUsageProvider(for: dataSourceMode),
+                        cachedSnapshot: settingsStore.cachedUsageSnapshot(for: dataSourceMode)
+                    )
+                }
+            )
         }
-
-        return usageService.status.menuBarSystemImage
+        .defaultSize(width: 430, height: 380)
     }
 
     private static func makeUsageProvider(for dataSourceMode: UsageDataSourceMode) -> UsageProvider {

@@ -58,12 +58,21 @@ final class SettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
-        let savedMode = defaults.string(forKey: Keys.menuBarDisplayMode)
+        let savedModeValue = defaults.string(forKey: Keys.menuBarDisplayMode)
+        let savedMode = savedModeValue
             .flatMap(MenuBarDisplayMode.init(rawValue:))
         let savedDataSourceMode = defaults.string(forKey: Keys.dataSourceMode)
             .flatMap(UsageDataSourceMode.init(rawValue:))
 
-        self.menuBarDisplayMode = savedMode ?? .currentSessionTokens
+        let didMigrateDefaultDisplayMode = defaults.bool(forKey: Keys.didMigrateDefaultDisplayMode)
+        if !didMigrateDefaultDisplayMode, savedModeValue == nil || savedMode == .currentSessionTokens {
+            self.menuBarDisplayMode = .rateLimitSummary
+            defaults.set(MenuBarDisplayMode.rateLimitSummary.rawValue, forKey: Keys.menuBarDisplayMode)
+            defaults.set(true, forKey: Keys.didMigrateDefaultDisplayMode)
+        } else {
+            self.menuBarDisplayMode = savedMode ?? .rateLimitSummary
+        }
+
         self.dataSourceMode = savedDataSourceMode ?? .codexDesktop
         self.isDailyBudgetEnabled = defaults.bool(forKey: Keys.isDailyBudgetEnabled)
 
@@ -152,6 +161,7 @@ private enum Keys {
     static let warningThresholdPercent = "warningThresholdPercent"
     static let budgetNotificationsEnabled = "budgetNotificationsEnabled"
     static let cachedUsageSnapshot = "cachedUsageSnapshot"
+    static let didMigrateDefaultDisplayMode = "didMigrateDefaultDisplayMode"
 }
 
 private struct CachedUsageSnapshotEnvelope: Codable {

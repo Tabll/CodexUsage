@@ -64,4 +64,22 @@ final class UsageModelTests: XCTestCase {
         XCTAssertNil(state.remainingTokens)
         XCTAssertEqual(state.severity, .disabled)
     }
+
+    func testRateLimitSummaryMenuBarTitleUsesShortAndWeeklyRemainingPercent() {
+        let title = MenuBarDisplayMode.rateLimitSummary.menuBarTitle(
+            for: .preview,
+            status: .current
+        )
+
+        XCTAssertEqual(title, "5小时 59% 本周 44%")
+    }
+
+    func testRateLimitSummaryMenuBarTitleKeepsShapeWithoutSnapshot() {
+        let title = MenuBarDisplayMode.rateLimitSummary.menuBarTitle(
+            for: nil,
+            status: .idle
+        )
+
+        XCTAssertEqual(title, "5小时 -- 本周 --")
+    }
 }

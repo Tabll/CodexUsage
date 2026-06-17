@@ -14,17 +14,29 @@ final class MenuBarContentViewSmokeTests: XCTestCase {
             ),
             providerName: "Codex 桌面端（Mock）",
             lastErrorMessage: nil,
-            menuBarDisplayMode: .constant(.currentSessionTokens),
-            dataSourceMode: .constant(.codexDesktop),
-            isDailyBudgetEnabled: .constant(true),
-            dailyBudgetTokens: .constant(150_000),
-            warningThresholdPercent: .constant(80),
-            budgetNotificationsEnabled: .constant(false),
             onRefresh: {},
             onQuit: {}
         )
-        let hostingView = NSHostingView(rootView: view.frame(width: 320))
-        hostingView.frame = NSRect(x: 0, y: 0, width: 320, height: 720)
+        let hostingView = NSHostingView(rootView: view.frame(width: 300))
+        hostingView.frame = NSRect(x: 0, y: 0, width: 300, height: 360)
+
+        hostingView.layoutSubtreeIfNeeded()
+
+        XCTAssertGreaterThan(hostingView.fittingSize.width, 0)
+        XCTAssertGreaterThan(hostingView.fittingSize.height, 0)
+    }
+
+    func testSettingsViewCanRenderInHostingView() {
+        let defaults = UserDefaults(suiteName: "CodexPlusTests.SettingsView") ?? .standard
+        defaults.removePersistentDomain(forName: "CodexPlusTests.SettingsView")
+
+        let view = SettingsView(
+            settingsStore: SettingsStore(defaults: defaults),
+            onBudgetConfigurationChange: { _ in },
+            onDataSourceModeChange: { _ in }
+        )
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 430, height: 420)
 
         hostingView.layoutSubtreeIfNeeded()
 

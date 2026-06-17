@@ -256,6 +256,10 @@ enum UsageFormatting {
         return "\(window.remainingPercent)%"
     }
 
+    static func rateLimitSummary(_ rateLimits: UsageRateLimitSnapshot?) -> String {
+        "5小时 \(remainingPercent(rateLimits?.shortWindow)) 本周 \(remainingPercent(rateLimits?.weeklyWindow))"
+    }
+
     static func cost(_ value: Decimal?) -> String {
         guard let value else {
             return "未估算"

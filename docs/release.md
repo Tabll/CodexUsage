@@ -38,7 +38,24 @@ DEVELOPMENT_TEAM="TEAMID" \
 scripts/package-release.sh
 ```
 
-公开分发前还需要完成 Apple notarization。当前脚本不自动上传公证，因为需要开发者账号、App 专用密码或 API Key，以及团队的发布策略。
+使用 Developer ID 证书时，脚本会自动传入 `OTHER_CODE_SIGN_FLAGS=--timestamp`，确保签名包含 Apple 公证所需的安全时间戳。
+
+公开分发前还需要完成 Apple notarization。当前脚本不自动上传公证，因为需要开发者账号、App 专用密码或 API Key，以及团队的发布策略。以已经保存到钥匙串的 `codexplus-notary` profile 为例：
+
+```sh
+xcrun notarytool submit dist/CodexPlus-0.1.0+1.zip \
+  --keychain-profile codexplus-notary \
+  --wait
+
+xcrun stapler staple build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app
+xcrun stapler validate build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app
+
+ditto -c -k --keepParent --norsrc --noextattr --noqtn --noacl \
+  build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app \
+  dist/CodexPlus-0.1.0+1.notarized.zip
+```
+
+最终面向用户分发 `dist/CodexPlus-0.1.0+1.notarized.zip`。
 
 ## 安装说明
 
