@@ -1,6 +1,6 @@
 import Foundation
 
-actor MockUsageProvider: UsageProvider {
+actor MockUsageProvider: UsageProvider, UsageHistoryProvider {
     nonisolated let name = "Codex 桌面端（Mock）"
 
     private let sessionId: String
@@ -68,6 +68,31 @@ actor MockUsageProvider: UsageProvider {
             budgetLimitTokens: budgetLimitTokens,
             rateLimits: .preview
         )
+    }
+
+    func fetchDailyUsageHistory(days: Int) async throws -> [DailyUsageSummary] {
+        let dayCount = max(1, days)
+        let today = calendar.startOfDay(for: Date())
+        let startDay = calendar.date(byAdding: .day, value: -(dayCount - 1), to: today) ?? today
+
+        return (0..<dayCount).map { offset in
+            let date = calendar.date(byAdding: .day, value: offset, to: startDay) ?? startDay
+            let wave = Double(offset + 1) / Double(max(dayCount, 1))
+            let weekdayBoost = calendar.component(.weekday, from: date).isMultiple(of: 3) ? 9_000 : 0
+            let input = Int(22_000 + wave * 38_000) + weekdayBoost
+            let output = Int(9_000 + wave * 16_000)
+            let cached = Int(Double(input) * 0.28)
+            let reasoning = Int(Double(output) * 0.18)
+
+            return DailyUsageSummary(
+                date: date,
+                inputTokens: input,
+                outputTokens: output,
+                cachedInputTokens: cached,
+                reasoningTokens: reasoning,
+                totalTokens: input + output
+            )
+        }
     }
 
     private func estimatedCost() -> Decimal {

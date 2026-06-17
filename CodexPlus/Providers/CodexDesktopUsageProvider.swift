@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-struct CodexDesktopUsageProvider: UsageProvider {
+struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider {
     let name = "Codex 桌面端"
 
     private let databaseCandidates: [URL]
@@ -29,6 +29,12 @@ struct CodexDesktopUsageProvider: UsageProvider {
     func fetchSnapshot() async throws -> UsageSnapshot {
         try await Task.detached(priority: .utility) {
             try loadSnapshot()
+        }.value
+    }
+
+    func fetchDailyUsageHistory(days: Int) async throws -> [DailyUsageSummary] {
+        try await Task.detached(priority: .utility) {
+            try loadDailyUsageHistory(days: days)
         }.value
     }
 
@@ -123,6 +129,82 @@ struct CodexDesktopUsageProvider: UsageProvider {
             .max { $0.updatedAt < $1.updatedAt }
     }
 
+    private func loadDailyUsageHistory(days requestedDays: Int) throws -> [DailyUsageSummary] {
+        let dayCount = max(1, requestedDays)
+        let databaseURLs = readableDatabaseURLs()
+
+        guard !databaseURLs.isEmpty else {
+            throw UsageProviderError.unavailable("找不到 Codex 桌面端用量数据库")
+        }
+
+        let today = calendar.startOfDay(for: Date())
+        let startDay = calendar.date(byAdding: .day, value: -(dayCount - 1), to: today) ?? today
+        let startTimestamp = Int64(startDay.timeIntervalSince1970)
+        var eventsByTurnId: [String: CodexUsageLogEvent] = [:]
+        var errors: [Error] = []
+        var didReadDatabase = false
+
+        for databaseURL in databaseURLs {
+            do {
+                let rows = try readHistoryRows(from: databaseURL, since: startTimestamp)
+                didReadDatabase = true
+
+                for row in rows {
+                    guard let event = CodexUsageLogParser.parseCompletedUsage(
+                        body: row.body,
+                        timestamp: row.timestamp
+                    ) else {
+                        continue
+                    }
+
+                    eventsByTurnId[event.turnId] = event
+                }
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if !didReadDatabase, let providerError = errors.first as? UsageProviderError {
+            throw providerError
+        }
+
+        return aggregateDailyUsage(
+            Array(eventsByTurnId.values),
+            startDay: startDay,
+            dayCount: dayCount
+        )
+    }
+
+    private func aggregateDailyUsage(
+        _ events: [CodexUsageLogEvent],
+        startDay: Date,
+        dayCount: Int
+    ) -> [DailyUsageSummary] {
+        let endDay = calendar.date(byAdding: .day, value: dayCount, to: startDay) ?? startDay
+        var summariesByDay: [Date: DailyUsageSummary] = [:]
+
+        for offset in 0..<dayCount {
+            let date = calendar.date(byAdding: .day, value: offset, to: startDay) ?? startDay
+            summariesByDay[date] = DailyUsageSummary(date: date)
+        }
+
+        for event in events where event.timestamp >= startDay && event.timestamp < endDay {
+            let day = calendar.startOfDay(for: event.timestamp)
+            summariesByDay[day]?.add(
+                inputTokens: event.inputTokens,
+                outputTokens: event.outputTokens,
+                cachedInputTokens: event.cachedInputTokens,
+                reasoningTokens: event.reasoningTokens,
+                totalTokens: event.totalTokens
+            )
+        }
+
+        return (0..<dayCount).map { offset in
+            let date = calendar.date(byAdding: .day, value: offset, to: startDay) ?? startDay
+            return summariesByDay[date] ?? DailyUsageSummary(date: date)
+        }
+    }
+
     private func readCandidateRows(from databaseURL: URL) throws -> [CodexUsageLogRow] {
         var database: OpaquePointer?
         let openResult = sqlite3_open_v2(
@@ -164,6 +246,68 @@ struct CodexDesktopUsageProvider: UsageProvider {
         }
 
         sqlite3_bind_int(statement, 1, Int32(recentRowLimit))
+
+        var rows: [CodexUsageLogRow] = []
+
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let timestamp = Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(statement, 0)))
+
+            guard let bodyPointer = sqlite3_column_text(statement, 1) else {
+                continue
+            }
+
+            rows.append(
+                CodexUsageLogRow(
+                    timestamp: timestamp,
+                    body: String(cString: bodyPointer)
+                )
+            )
+        }
+
+        return rows
+    }
+
+    private func readHistoryRows(from databaseURL: URL, since startTimestamp: Int64) throws -> [CodexUsageLogRow] {
+        var database: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &database,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+
+        guard openResult == SQLITE_OK, let database else {
+            let message = database.map { String(cString: sqlite3_errmsg($0)) } ?? "无法打开数据库"
+            if let database {
+                sqlite3_close(database)
+            }
+            throw UsageProviderError.unavailable(message)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        sqlite3_busy_timeout(database, 100)
+
+        let sql = """
+        SELECT ts, feedback_log_body
+        FROM logs
+        WHERE target = 'codex_api::endpoint::responses_websocket'
+          AND ts >= ?
+        ORDER BY ts ASC, id ASC;
+        """
+
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else {
+            throw UsageProviderError.malformedData(String(cString: sqlite3_errmsg(database)))
+        }
+
+        defer {
+            sqlite3_finalize(statement)
+        }
+
+        sqlite3_bind_int64(statement, 1, startTimestamp)
 
         var rows: [CodexUsageLogRow] = []
 

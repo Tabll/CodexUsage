@@ -98,6 +98,86 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 28)
     }
 
+    func testDesktopProviderAggregatesDailyUsageHistory() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let databaseURL = directory.appendingPathComponent("history.sqlite")
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: today))
+        let twoDaysAgo = try XCTUnwrap(calendar.date(byAdding: .day, value: -2, to: today))
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        var database: OpaquePointer?
+        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK, let database else {
+            throw sqliteError(database)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try createLogsTable(database: database)
+        try insertLogBody(
+            completedUsageBody(
+                timestamp: yesterday.addingTimeInterval(3_600),
+                inputTokens: 100,
+                outputTokens: 20,
+                cachedInputTokens: 12,
+                reasoningTokens: 4,
+                totalTokens: 120
+            ),
+            timestamp: yesterday.addingTimeInterval(3_600),
+            database: database
+        )
+        try insertLogBody(
+            completedUsageBody(
+                timestamp: yesterday.addingTimeInterval(7_200),
+                inputTokens: 50,
+                outputTokens: 25,
+                cachedInputTokens: 8,
+                reasoningTokens: 5,
+                totalTokens: 75
+            ),
+            timestamp: yesterday.addingTimeInterval(7_200),
+            database: database
+        )
+        try insertLogBody(
+            completedUsageBody(
+                timestamp: today.addingTimeInterval(3_600),
+                inputTokens: 200,
+                outputTokens: 80,
+                cachedInputTokens: 40,
+                reasoningTokens: 16,
+                totalTokens: 280
+            ),
+            timestamp: today.addingTimeInterval(3_600),
+            database: database
+        )
+
+        let provider = CodexDesktopUsageProvider(
+            databaseCandidates: [databaseURL],
+            calendar: calendar,
+            recentRowLimit: 20
+        )
+
+        let history = try await provider.fetchDailyUsageHistory(days: 3)
+
+        XCTAssertEqual(history.map(\.date), [twoDaysAgo, yesterday, today])
+        XCTAssertEqual(history[0].totalTokens, 0)
+        XCTAssertEqual(history[1].inputTokens, 150)
+        XCTAssertEqual(history[1].outputTokens, 45)
+        XCTAssertEqual(history[1].cachedInputTokens, 20)
+        XCTAssertEqual(history[1].reasoningTokens, 9)
+        XCTAssertEqual(history[1].totalTokens, 195)
+        XCTAssertEqual(history[2].totalTokens, 280)
+    }
+
     private func fixture(named name: String, fileExtension: String) throws -> String {
         let url = try XCTUnwrap(
             Bundle(for: Self.self).url(forResource: name, withExtension: fileExtension)
@@ -121,17 +201,7 @@ final class CodexUsageLogParserTests: XCTestCase {
             sqlite3_close(database)
         }
 
-        try execute(
-            """
-            CREATE TABLE logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ts INTEGER NOT NULL,
-                target TEXT NOT NULL,
-                feedback_log_body TEXT NOT NULL
-            );
-            """,
-            database: database
-        )
+        try createLogsTable(database: database)
 
         try insertLogBody(
             completedUsageBody(timestamp: timestamp),
@@ -145,6 +215,20 @@ final class CodexUsageLogParserTests: XCTestCase {
                 weeklyUsedPercent: weeklyUsedPercent
             ),
             timestamp: timestamp,
+            database: database
+        )
+    }
+
+    private func createLogsTable(database: OpaquePointer) throws {
+        try execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts INTEGER NOT NULL,
+                target TEXT NOT NULL,
+                feedback_log_body TEXT NOT NULL
+            );
+            """,
             database: database
         )
     }
@@ -173,10 +257,28 @@ final class CodexUsageLogParserTests: XCTestCase {
     }
 
     private func completedUsageBody(timestamp: Date) -> String {
+        completedUsageBody(
+            timestamp: timestamp,
+            inputTokens: 100,
+            outputTokens: 20,
+            cachedInputTokens: 0,
+            reasoningTokens: 0,
+            totalTokens: 120
+        )
+    }
+
+    private func completedUsageBody(
+        timestamp: Date,
+        inputTokens: Int,
+        outputTokens: Int,
+        cachedInputTokens: Int,
+        reasoningTokens: Int,
+        totalTokens: Int
+    ) -> String {
         let timestampSeconds = Int(timestamp.timeIntervalSince1970)
 
         return """
-        session_loop{thread_id=fixture-thread}:turn{turn.id=fixture-turn-\(timestampSeconds)}: websocket event: {"type":"response.completed","response":{"usage":{"input_tokens":100,"output_tokens":20,"total_tokens":120,"input_tokens_details":{"cached_tokens":0},"output_tokens_details":{"reasoning_tokens":0}}}}
+        session_loop{thread_id=fixture-thread}:turn{turn.id=fixture-turn-\(timestampSeconds)}: websocket event: {"type":"response.completed","response":{"usage":{"input_tokens":\(inputTokens),"output_tokens":\(outputTokens),"total_tokens":\(totalTokens),"input_tokens_details":{"cached_tokens":\(cachedInputTokens)},"output_tokens_details":{"reasoning_tokens":\(reasoningTokens)}}}}
         """
     }
 

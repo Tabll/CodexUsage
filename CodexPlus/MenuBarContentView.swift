@@ -1,4 +1,5 @@
 import AppKit
+import Charts
 import SwiftUI
 
 struct MenuBarContentView: View {
@@ -187,6 +188,8 @@ struct SettingsView: View {
     let onDataSourceModeChange: (UsageDataSourceMode) -> Void
     let onRefreshConfigurationChange: (UsageRefreshConfiguration) -> Void
 
+    @State private var isUsageChartPresented = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             settingsSection("状态栏") {
@@ -214,6 +217,16 @@ struct SettingsView: View {
                             settingsStore.dataSourceMode = mode
                         }
                     }
+                }
+            }
+
+            settingsSection("用量统计") {
+                SettingsActionButton(
+                    title: "用量图表",
+                    detail: "最近一周 / 30 天",
+                    systemImage: "chart.xyaxis.line"
+                ) {
+                    isUsageChartPresented = true
                 }
             }
 
@@ -291,6 +304,10 @@ struct SettingsView: View {
         .padding(22)
         .frame(width: 560)
         .tint(.blue)
+        .sheet(isPresented: $isUsageChartPresented) {
+            UsageHistoryChartSheet(dataSourceMode: settingsStore.dataSourceMode)
+                .frame(width: 760, height: 540)
+        }
         .onChange(of: settingsStore.budgetConfiguration) { _, configuration in
             onBudgetConfigurationChange(configuration)
         }
@@ -374,6 +391,534 @@ private struct SettingsOptionButton: View {
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+}
+
+private struct SettingsActionButton: View {
+    let title: String
+    let detail: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.blue.opacity(0.14))
+
+                    Image(systemName: systemImage)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.blue)
+                }
+                .frame(width: 32, height: 32)
+
+                Text(title)
+                    .font(.callout)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.blue.opacity(0.12),
+                                Color.blue.opacity(0.035)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.blue.opacity(0.22), lineWidth: 0.8)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct UsageHistoryChartSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let dataSourceMode: UsageDataSourceMode
+
+    @State private var selectedPeriod: UsageHistoryPeriod = .last7Days
+    @State private var summaries: [DailyUsageSummary] = []
+    @State private var selectedSummary: DailyUsageSummary?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var loadedAt: Date?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+
+            metrics
+
+            chartPanel
+
+            footer
+        }
+        .padding(22)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .task(id: selectedPeriod) {
+            await loadHistory()
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("用量图表")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("按天汇总 · \(dataSourceMode.title)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Picker("范围", selection: $selectedPeriod) {
+                ForEach(UsageHistoryPeriod.allCases) { period in
+                    Text(period.title).tag(period)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 220)
+
+            Button {
+                Task {
+                    await loadHistory()
+                }
+            } label: {
+                Label("刷新", systemImage: "arrow.clockwise")
+            }
+            .disabled(isLoading)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.borderless)
+            .help("关闭")
+        }
+    }
+
+    private var metrics: some View {
+        HStack(spacing: 10) {
+            UsageHistoryMetricTile(
+                title: "总 Tokens",
+                value: UsageFormatting.tokens(periodTotalTokens),
+                systemImage: "sum"
+            )
+
+            UsageHistoryMetricTile(
+                title: "日均 Tokens",
+                value: UsageFormatting.tokens(averageDailyTokens),
+                systemImage: "chart.bar"
+            )
+
+            UsageHistoryMetricTile(
+                title: "峰值日期",
+                value: peakDayText,
+                systemImage: "arrow.up.right"
+            )
+        }
+    }
+
+    private var chartPanel: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.blue.opacity(0.16), lineWidth: 0.8)
+                )
+
+            if isLoading {
+                ProgressView("正在读取用量")
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let errorMessage {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+
+                    Text("无法读取用量图表")
+                        .font(.headline)
+
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                usageChart
+                    .padding(.top, 18)
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 14)
+                    .padding(.leading, 8)
+            }
+        }
+        .frame(height: 300)
+    }
+
+    private var usageChart: some View {
+        Chart {
+            ForEach(summaries) { summary in
+                AreaMark(
+                    x: .value("日期", summary.date, unit: .day),
+                    y: .value("总 Tokens", summary.totalTokens)
+                )
+                .interpolationMethod(.catmullRom)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.28),
+                            Color.blue.opacity(0.02)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+                LineMark(
+                    x: .value("日期", summary.date, unit: .day),
+                    y: .value("总 Tokens", summary.totalTokens)
+                )
+                .interpolationMethod(.catmullRom)
+                .lineStyle(StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.07, green: 0.33, blue: 0.95),
+                            Color.blue
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+
+                PointMark(
+                    x: .value("日期", summary.date, unit: .day),
+                    y: .value("总 Tokens", summary.totalTokens)
+                )
+                .symbolSize(selectedSummary?.date == summary.date ? 80 : 36)
+                .foregroundStyle(Color.blue)
+            }
+
+            if let selectedSummary {
+                RuleMark(x: .value("选中日期", selectedSummary.date, unit: .day))
+                    .foregroundStyle(Color.blue.opacity(0.34))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .annotation(position: .top, alignment: .leading, spacing: 8) {
+                        UsageHistoryDetailCard(summary: selectedSummary)
+                    }
+            }
+        }
+        .chartYScale(domain: 0...chartMaxY)
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: selectedPeriod == .last7Days ? 1 : 5)) { value in
+                AxisGridLine()
+                    .foregroundStyle(Color.blue.opacity(0.08))
+                AxisTick()
+                    .foregroundStyle(Color.blue.opacity(0.18))
+                AxisValueLabel {
+                    if let date = value.as(Date.self) {
+                        Text(UsageHistoryFormatting.shortDay(date))
+                    }
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisGridLine()
+                    .foregroundStyle(Color.blue.opacity(0.10))
+                AxisTick()
+                    .foregroundStyle(Color.blue.opacity(0.18))
+                AxisValueLabel {
+                    if let tokens = value.as(Int.self) {
+                        Text(UsageFormatting.tokens(tokens))
+                    }
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        updateSelection(from: phase, proxy: proxy, geometry: geometry)
+                    }
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack {
+            Label("悬停数据点查看详情", systemImage: "cursorarrow.motionlines")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("更新时间 \(UsageFormatting.time(loadedAt))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var periodTotalTokens: Int {
+        summaries.reduce(0) { $0 + $1.totalTokens }
+    }
+
+    private var averageDailyTokens: Int {
+        guard !summaries.isEmpty else {
+            return 0
+        }
+
+        return periodTotalTokens / summaries.count
+    }
+
+    private var peakDayText: String {
+        guard let peak = summaries.max(by: { $0.totalTokens < $1.totalTokens }),
+              peak.totalTokens > 0 else {
+            return "--"
+        }
+
+        return UsageHistoryFormatting.shortDay(peak.date)
+    }
+
+    private var chartMaxY: Int {
+        let maxTokens = summaries.map(\.totalTokens).max() ?? 0
+        let padding = max(maxTokens / 5, 1)
+        return max(maxTokens + padding, 1)
+    }
+
+    @MainActor
+    private func loadHistory() async {
+        isLoading = true
+        errorMessage = nil
+        selectedSummary = nil
+        loadedAt = nil
+
+        do {
+            let provider = makeHistoryProvider()
+            let history = try await provider.fetchDailyUsageHistory(days: selectedPeriod.dayCount)
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            summaries = history
+            selectedSummary = nil
+            loadedAt = Date()
+            isLoading = false
+        } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            summaries = []
+            errorMessage = error.localizedDescription
+            loadedAt = nil
+            isLoading = false
+        }
+    }
+
+    private func makeHistoryProvider() -> any UsageHistoryProvider {
+        switch dataSourceMode {
+        case .codexDesktop:
+            return CodexDesktopUsageProvider()
+        case .mock:
+            return MockUsageProvider()
+        }
+    }
+
+    private func updateSelection(
+        from phase: HoverPhase,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        switch phase {
+        case .active(let location):
+            guard let plotFrameAnchor = proxy.plotFrame else {
+                selectedSummary = nil
+                return
+            }
+
+            let plotFrame = geometry[plotFrameAnchor]
+            guard plotFrame.contains(location) else {
+                selectedSummary = nil
+                return
+            }
+
+            let relativeX = location.x - plotFrame.origin.x
+            guard let date = proxy.value(atX: relativeX, as: Date.self) else {
+                selectedSummary = nil
+                return
+            }
+
+            selectedSummary = nearestSummary(to: date)
+        case .ended:
+            selectedSummary = nil
+        }
+    }
+
+    private func nearestSummary(to date: Date) -> DailyUsageSummary? {
+        summaries.min { lhs, rhs in
+            abs(lhs.date.timeIntervalSince(date)) < abs(rhs.date.timeIntervalSince(date))
+        }
+    }
+}
+
+private struct UsageHistoryMetricTile: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.blue)
+                .frame(width: 24, height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.blue.opacity(0.12))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(value)
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.blue.opacity(0.13), lineWidth: 0.8)
+        )
+    }
+}
+
+private struct UsageHistoryDetailCard: View {
+    let summary: DailyUsageSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .foregroundStyle(Color.blue)
+
+                Text(UsageHistoryFormatting.fullDay(summary.date))
+                    .fontWeight(.semibold)
+            }
+
+            Divider()
+
+            UsageHistoryDetailRow(title: "输入 Tokens", value: summary.inputTokens)
+            UsageHistoryDetailRow(title: "输出 Tokens", value: summary.outputTokens)
+            UsageHistoryDetailRow(title: "缓存输入 Tokens", value: summary.cachedInputTokens)
+            UsageHistoryDetailRow(title: "推理 Tokens", value: summary.reasoningTokens)
+            UsageHistoryDetailRow(title: "总 Tokens", value: summary.totalTokens, isEmphasized: true)
+        }
+        .font(.caption)
+        .padding(10)
+        .frame(width: 184, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .shadow(color: Color.blue.opacity(0.14), radius: 14, x: 0, y: 8)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.blue.opacity(0.22), lineWidth: 0.8)
+        )
+    }
+}
+
+private struct UsageHistoryDetailRow: View {
+    let title: String
+    let value: Int
+    var isEmphasized = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(isEmphasized ? Color.primary : Color.secondary)
+
+            Spacer()
+
+            Text(UsageFormatting.tokens(value))
+                .fontWeight(isEmphasized ? .semibold : .medium)
+                .monospacedDigit()
+        }
+    }
+}
+
+private enum UsageHistoryFormatting {
+    static func shortDay(_ date: Date) -> String {
+        shortDayFormatter.string(from: date)
+    }
+
+    static func fullDay(_ date: Date) -> String {
+        fullDayFormatter.string(from: date)
+    }
+
+    private static let shortDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter
+    }()
+
+    private static let fullDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_Hans_CN")
+        formatter.dateFormat = "M月d日 EEEE"
+        return formatter
+    }()
 }
 
 private struct RateLimitTile: View {
@@ -460,6 +1005,7 @@ private struct SettingsValueRow: View {
     }
 }
 
+#if DEBUG
 #Preview("Menu") {
     MenuBarContentView(
         snapshot: .preview,
@@ -484,3 +1030,4 @@ private struct SettingsValueRow: View {
         onRefreshConfigurationChange: { _ in }
     )
 }
+#endif

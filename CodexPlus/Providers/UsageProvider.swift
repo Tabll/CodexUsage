@@ -34,6 +34,10 @@ protocol UsageProvider {
     func fetchSnapshot() async throws -> UsageSnapshot
 }
 
+protocol UsageHistoryProvider {
+    func fetchDailyUsageHistory(days: Int) async throws -> [DailyUsageSummary]
+}
+
 extension UsageProvider {
     var refreshHintFiles: [URL] {
         []

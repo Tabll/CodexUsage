@@ -105,6 +105,71 @@ struct UsageRateLimitWindow: Codable, Equatable {
     }
 }
 
+enum UsageHistoryPeriod: Int, CaseIterable, Identifiable {
+    case last7Days = 7
+    case last30Days = 30
+
+    var id: Int {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .last7Days:
+            return "最近一周"
+        case .last30Days:
+            return "最近 30 天"
+        }
+    }
+
+    var dayCount: Int {
+        rawValue
+    }
+}
+
+struct DailyUsageSummary: Codable, Equatable, Identifiable {
+    let date: Date
+    var inputTokens: Int
+    var outputTokens: Int
+    var cachedInputTokens: Int
+    var reasoningTokens: Int
+    var totalTokens: Int
+
+    var id: Date {
+        date
+    }
+
+    init(
+        date: Date,
+        inputTokens: Int = 0,
+        outputTokens: Int = 0,
+        cachedInputTokens: Int = 0,
+        reasoningTokens: Int = 0,
+        totalTokens: Int = 0
+    ) {
+        self.date = date
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cachedInputTokens = cachedInputTokens
+        self.reasoningTokens = reasoningTokens
+        self.totalTokens = totalTokens
+    }
+
+    mutating func add(
+        inputTokens: Int,
+        outputTokens: Int,
+        cachedInputTokens: Int,
+        reasoningTokens: Int,
+        totalTokens: Int
+    ) {
+        self.inputTokens += inputTokens
+        self.outputTokens += outputTokens
+        self.cachedInputTokens += cachedInputTokens
+        self.reasoningTokens += reasoningTokens
+        self.totalTokens += totalTokens
+    }
+}
+
 struct UsageBudgetConfiguration: Codable, Equatable {
     static let defaultDailyLimitTokens = 150_000
     static let defaultWarningThresholdPercent = 80
