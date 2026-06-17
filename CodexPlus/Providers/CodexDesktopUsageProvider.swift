@@ -19,15 +19,11 @@ struct CodexDesktopUsageProvider: UsageProvider {
     }
 
     var refreshHintFiles: [URL] {
-        guard let databaseURL = firstReadableDatabaseURL() else {
+        guard let databaseURL = mostRecentlyActiveDatabaseURL() else {
             return []
         }
 
-        return [
-            databaseURL,
-            URL(fileURLWithPath: databaseURL.path + "-wal"),
-            URL(fileURLWithPath: databaseURL.path + "-shm")
-        ]
+        return refreshHintFiles(for: databaseURL)
     }
 
     func fetchSnapshot() async throws -> UsageSnapshot {
@@ -37,10 +33,35 @@ struct CodexDesktopUsageProvider: UsageProvider {
     }
 
     private func loadSnapshot() throws -> UsageSnapshot {
-        guard let databaseURL = firstReadableDatabaseURL() else {
+        let databaseURLs = readableDatabaseURLs()
+
+        guard !databaseURLs.isEmpty else {
             throw UsageProviderError.unavailable("找不到 Codex 桌面端用量数据库")
         }
 
+        var snapshots: [UsageSnapshot] = []
+        var errors: [Error] = []
+
+        for databaseURL in databaseURLs {
+            do {
+                snapshots.append(try loadSnapshot(from: databaseURL))
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if let latestSnapshot = snapshots.max(by: { $0.updatedAt < $1.updatedAt }) {
+            return latestSnapshot
+        }
+
+        if let providerError = errors.first as? UsageProviderError {
+            throw providerError
+        }
+
+        throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可解析的 usage")
+    }
+
+    private func loadSnapshot(from databaseURL: URL) throws -> UsageSnapshot {
         let rows = try readCandidateRows(from: databaseURL)
         let events = readUsageEvents(from: rows)
         let latestRateLimits = readLatestRateLimits(from: rows)
@@ -164,8 +185,30 @@ struct CodexDesktopUsageProvider: UsageProvider {
         return rows
     }
 
-    private func firstReadableDatabaseURL() -> URL? {
-        databaseCandidates.first { FileManager.default.isReadableFile(atPath: $0.path) }
+    private func readableDatabaseURLs() -> [URL] {
+        databaseCandidates.filter { FileManager.default.isReadableFile(atPath: $0.path) }
+    }
+
+    private func mostRecentlyActiveDatabaseURL() -> URL? {
+        readableDatabaseURLs().max { lhs, rhs in
+            latestModificationDate(for: lhs) < latestModificationDate(for: rhs)
+        }
+    }
+
+    private func latestModificationDate(for databaseURL: URL) -> Date {
+        refreshHintFiles(for: databaseURL)
+            .compactMap { url in
+                try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+            }
+            .max() ?? .distantPast
+    }
+
+    private func refreshHintFiles(for databaseURL: URL) -> [URL] {
+        [
+            databaseURL,
+            URL(fileURLWithPath: databaseURL.path + "-wal"),
+            URL(fileURLWithPath: databaseURL.path + "-shm")
+        ]
     }
 
     private static func defaultDatabaseCandidates() -> [URL] {
@@ -173,10 +216,10 @@ struct CodexDesktopUsageProvider: UsageProvider {
         let codexDirectory = homeDirectory.appendingPathComponent(".codex", isDirectory: true)
 
         return [
+            codexDirectory.appendingPathComponent("logs_2.sqlite"),
             codexDirectory
                 .appendingPathComponent("sqlite", isDirectory: true)
-                .appendingPathComponent("logs_2.sqlite"),
-            codexDirectory.appendingPathComponent("logs_2.sqlite")
+                .appendingPathComponent("logs_2.sqlite")
         ]
     }
 }

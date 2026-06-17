@@ -51,11 +51,11 @@ CodexPlus 已完成 MVP 到打包发布阶段：
 第一版真实数据源是 Codex 桌面端本地 SQLite 日志：
 
 ```text
-~/.codex/sqlite/logs_2.sqlite
 ~/.codex/logs_2.sqlite
+~/.codex/sqlite/logs_2.sqlite
 ```
 
-CodexPlus 会读取最近的 Codex websocket 日志，解析其中的 usage 和 rate limits 事件，并聚合为统一模型：
+CodexPlus 会检查候选数据库，选择最新可解析的 Codex websocket 日志，解析其中的 usage 和 rate limits 事件，并聚合为统一模型：
 
 ```text
 UsageSnapshot

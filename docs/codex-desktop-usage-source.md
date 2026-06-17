@@ -4,12 +4,12 @@ CodexPlus 第一版真实数据源读取 Codex 桌面端本地日志，不访问
 
 ## 文件位置
 
-按优先级查找：
+候选位置：
 
-1. `~/.codex/sqlite/logs_2.sqlite`
-2. `~/.codex/logs_2.sqlite`
+1. `~/.codex/logs_2.sqlite`
+2. `~/.codex/sqlite/logs_2.sqlite`
 
-Provider 会以只读方式打开 SQLite 数据库，并监听当前数据库、WAL、SHM 文件变化：
+Provider 会以只读方式打开可读候选库，并选择最新可解析快照；这样即使 Codex 桌面端在不同版本间迁移日志位置，也不会因为较旧数据库仍然可读而显示过期额度。文件监听会跟随最近有写入活动的数据库、WAL、SHM 文件：
 
 - `logs_2.sqlite`
 - `logs_2.sqlite-wal`
@@ -118,7 +118,7 @@ feedback_log_body contains "usage" or "codex.rate_limits"
 - 今日总量：汇总本地自然日内所有可解析 `response.completed` 的 `total_tokens`。
 - 更新时间：使用最新可解析 usage 或 rate limit 记录的 `ts`。
 
-当前实现会读取最近 5000 条候选日志，再在内存里解析和去重。
+当前实现会读取每个候选库最近 2000 条候选日志，再在内存里解析和去重，并选择 `updatedAt` 最新的有效快照。
 
 ## 错误处理
 
