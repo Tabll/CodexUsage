@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "7F6C2E342B4F4E9000A1B201"
-               BuildableName = "CodexPlus.app"
+               BuildableName = "Codex用量.app"
                BlueprintName = "CodexPlus"
                ReferencedContainer = "container:CodexPlus.xcodeproj">
             </BuildableReference>
@@ -57,7 +57,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7F6C2E342B4F4E9000A1B201"
-            BuildableName = "CodexPlus.app"
+            BuildableName = "Codex用量.app"
             BlueprintName = "CodexPlus"
             ReferencedContainer = "container:CodexPlus.xcodeproj">
          </BuildableReference>
@@ -74,7 +74,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7F6C2E342B4F4E9000A1B201"
-            BuildableName = "CodexPlus.app"
+            BuildableName = "Codex用量.app"
             BlueprintName = "CodexPlus"
             ReferencedContainer = "container:CodexPlus.xcodeproj">
          </BuildableReference>

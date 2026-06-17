@@ -38,7 +38,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		7F6C2E362B4F4E9000A1B201 /* CodexPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodexPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7F6C2E362B4F4E9000A1B201 /* Codex用量.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Codex用量.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusApp.swift; sourceTree = "<group>"; };
 		7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		7F6C2E3F2B4F4E9000A1B201 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -94,7 +94,7 @@
 		7F6C2E352B4F4E9000A1B201 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7F6C2E362B4F4E9000A1B201 /* CodexPlus.app */,
+				7F6C2E362B4F4E9000A1B201 /* Codex用量.app */,
 				7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */,
 			);
 			name = Products;
@@ -197,7 +197,7 @@
 			);
 			name = CodexPlus;
 			productName = CodexPlus;
-			productReference = 7F6C2E362B4F4E9000A1B201 /* CodexPlus.app */;
+			productReference = 7F6C2E362B4F4E9000A1B201 /* Codex用量.app */;
 			productType = "com.apple.product-type.application";
 		};
 		7F6C2F202B4F4E9000A1B201 /* CodexPlusTests */ = {
@@ -448,9 +448,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = CodexPlus;
+				PRODUCT_NAME = "Codex用量";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -475,9 +476,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = CodexPlus;
+				PRODUCT_NAME = "Codex用量";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;

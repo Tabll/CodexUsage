@@ -61,7 +61,7 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
                 return UsageFormatting.rateLimitSummary(nil)
             }
 
-            return "CodexPlus"
+            return "Codex用量"
         }
 
         switch self {

@@ -1,6 +1,6 @@
 # 打包发布
 
-CodexPlus 当前版本为 `0.1.0 (1)`，最低支持 macOS 26。
+Codex用量 当前版本为 `0.1.1 (1)`，最低支持 macOS 26。
 
 ## 发布产物
 
@@ -13,10 +13,10 @@ scripts/package-release.sh
 默认产物：
 
 ```text
-dist/CodexPlus-0.1.0+1.zip
+dist/CodexUsage-0.1.1+1.zip
 ```
 
-脚本会执行 Release 构建，校验签名，确认 `AppIcon.icns` 已进入 App 包，并把 `CodexPlus.app` 打成 zip。`dist/` 和 `build/` 是本地产物目录，不提交到 Git。
+脚本会执行 Release 构建，校验签名，确认 `AppIcon.icns` 已进入 App 包，并把 `Codex用量.app` 打成 zip。`dist/` 和 `build/` 是本地产物目录，不提交到 Git。
 
 ## 签名配置
 
@@ -43,29 +43,29 @@ scripts/package-release.sh
 公开分发前还需要完成 Apple notarization。当前脚本不自动上传公证，因为需要开发者账号、App 专用密码或 API Key，以及团队的发布策略。以已经保存到钥匙串的 `codexplus-notary` profile 为例：
 
 ```sh
-xcrun notarytool submit dist/CodexPlus-0.1.0+1.zip \
+xcrun notarytool submit dist/CodexUsage-0.1.1+1.zip \
   --keychain-profile codexplus-notary \
   --wait
 
-xcrun stapler staple build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app
-xcrun stapler validate build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app
+xcrun stapler staple build/ReleaseDerivedData/Build/Products/Release/Codex用量.app
+xcrun stapler validate build/ReleaseDerivedData/Build/Products/Release/Codex用量.app
 
 ditto -c -k --keepParent --norsrc --noextattr --noqtn --noacl \
-  build/ReleaseDerivedData/Build/Products/Release/CodexPlus.app \
-  dist/CodexPlus-0.1.0+1.notarized.zip
+  build/ReleaseDerivedData/Build/Products/Release/Codex用量.app \
+  dist/CodexUsage-0.1.1+1.notarized.zip
 ```
 
-最终面向用户分发 `dist/CodexPlus-0.1.0+1.notarized.zip`。
+最终面向用户分发 `dist/CodexUsage-0.1.1+1.notarized.zip`。
 
 ## 安装说明
 
-1. 解压 `dist/CodexPlus-0.1.0+1.zip`。
-2. 将 `CodexPlus.app` 拖入 `/Applications`。
-3. 启动 `CodexPlus.app`。
+1. 解压 `dist/CodexUsage-0.1.1+1.zip`。
+2. 将 `Codex用量.app` 拖入 `/Applications`。
+3. 启动 `Codex用量.app`。
 4. App 启动后只显示在菜单栏，不显示 Dock 图标。
 5. 首次开启预算通知时，按系统提示允许通知权限。
 
-CodexPlus 默认读取 Codex 桌面端本地用量日志，不需要配置 API Key。
+Codex用量 默认读取 Codex 桌面端本地用量日志，不需要配置 API Key。
 
 ## 故障排查
 
@@ -76,13 +76,13 @@ CodexPlus 默认读取 Codex 桌面端本地用量日志，不需要配置 API K
 - 如果 zip 解压后 App 被隔离，可以执行：
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/CodexPlus.app
+xattr -dr com.apple.quarantine /Applications/Codex用量.app
 ```
 
 如果菜单栏没有出现：
 
-- 确认 App 正在运行。CodexPlus 是菜单栏 App，不会显示 Dock 图标。
-- 打开“活动监视器”，搜索 `CodexPlus`。
+- 确认 App 正在运行。Codex用量 是菜单栏 App，不会显示 Dock 图标。
+- 打开“活动监视器”，搜索 `Codex用量`。
 - 重新启动 App，或从活动监视器退出后再打开。
 
 如果没有真实用量：
@@ -93,6 +93,6 @@ xattr -dr com.apple.quarantine /Applications/CodexPlus.app
 
 如果通知不出现：
 
-- 在系统设置里确认 CodexPlus 的通知权限已开启。
-- 在 CodexPlus 弹窗里确认“每日预算”和“macOS 通知”都已开启。
+- 在系统设置里确认 Codex用量 的通知权限已开启。
+- 在 Codex用量 弹窗里确认“每日预算”和“macOS 通知”都已开启。
 - 通知只会在当天首次达到警告阈值或首次超过预算时发送，避免重复打扰。

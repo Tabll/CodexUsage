@@ -188,116 +188,109 @@ struct SettingsView: View {
     let onRefreshConfigurationChange: (UsageRefreshConfiguration) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("CodexPlus 设置")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    SettingsSectionHeader(title: "状态栏")
-
-                    SettingsPickerRow(title: "显示内容", systemImage: "menubar.rectangle") {
-                        Picker("", selection: $settingsStore.menuBarDisplayMode) {
-                            ForEach(MenuBarDisplayMode.allCases) { mode in
-                                Label(mode.title, systemImage: mode.systemImage)
-                                    .tag(mode)
-                            }
+        VStack(alignment: .leading, spacing: 16) {
+            settingsSection("状态栏") {
+                LazyVGrid(columns: displayModeColumns, alignment: .leading, spacing: 8) {
+                    ForEach(MenuBarDisplayMode.allCases) { mode in
+                        SettingsOptionButton(
+                            title: mode.title,
+                            systemImage: mode.systemImage,
+                            isSelected: settingsStore.menuBarDisplayMode == mode
+                        ) {
+                            settingsStore.menuBarDisplayMode = mode
                         }
                     }
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    SettingsSectionHeader(title: "数据源")
-
-                    SettingsPickerRow(title: "用量来源", systemImage: "desktopcomputer") {
-                        Picker("", selection: $settingsStore.dataSourceMode) {
-                            ForEach(UsageDataSourceMode.allCases) { mode in
-                                Label(mode.title, systemImage: mode.systemImage)
-                                    .tag(mode)
-                            }
-                        }
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    SettingsSectionHeader(title: "刷新")
-
-                    Toggle(isOn: $settingsStore.isIdlePollingEnabled) {
-                        Label("闲置主动轮询", systemImage: "clock.arrow.circlepath")
-                    }
-                    .toggleStyle(.switch)
-
-                    Stepper(
-                        value: $settingsStore.idleRefreshIntervalMinutes,
-                        in: UsageServiceRefreshDefaults.minimumIdleRefreshIntervalMinutes...UsageServiceRefreshDefaults.maximumIdleRefreshIntervalMinutes,
-                        step: 5
-                    ) {
-                        SettingsValueRow(
-                            title: "闲置间隔",
-                            value: "\(settingsStore.idleRefreshIntervalMinutes) 分钟",
-                            systemImage: "timer"
-                        )
-                    }
-                    .disabled(!settingsStore.isIdlePollingEnabled)
-
-                    Stepper(
-                        value: $settingsStore.activeRefreshIntervalSeconds,
-                        in: UsageServiceRefreshDefaults.minimumActiveRefreshIntervalSeconds...UsageServiceRefreshDefaults.maximumActiveRefreshIntervalSeconds,
-                        step: 5
-                    ) {
-                        SettingsValueRow(
-                            title: "使用中间隔",
-                            value: "\(settingsStore.activeRefreshIntervalSeconds) 秒",
-                            systemImage: "bolt.badge.clock"
-                        )
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    SettingsSectionHeader(title: "预算与提醒")
-
-                    Toggle(isOn: $settingsStore.isDailyBudgetEnabled) {
-                        Label("每日预算", systemImage: "gauge")
-                    }
-                    .toggleStyle(.switch)
-
-                    Stepper(
-                        value: $settingsStore.dailyBudgetTokens,
-                        in: UsageBudgetConfiguration.minimumDailyLimitTokens...UsageBudgetConfiguration.maximumDailyLimitTokens,
-                        step: 10_000
-                    ) {
-                        SettingsValueRow(
-                            title: "预算额度",
-                            value: UsageFormatting.tokens(settingsStore.dailyBudgetTokens),
-                            systemImage: "number"
-                        )
-                    }
-                    .disabled(!settingsStore.isDailyBudgetEnabled)
-
-                    Stepper(
-                        value: $settingsStore.warningThresholdPercent,
-                        in: UsageBudgetConfiguration.minimumWarningThresholdPercent...UsageBudgetConfiguration.maximumWarningThresholdPercent,
-                        step: 5
-                    ) {
-                        SettingsValueRow(
-                            title: "警告阈值",
-                            value: "\(settingsStore.warningThresholdPercent)%",
-                            systemImage: "bell"
-                        )
-                    }
-                    .disabled(!settingsStore.isDailyBudgetEnabled)
-
-                    Toggle(isOn: $settingsStore.budgetNotificationsEnabled) {
-                        Label("macOS 通知", systemImage: "bell.badge")
-                    }
-                    .toggleStyle(.switch)
-                    .disabled(!settingsStore.isDailyBudgetEnabled)
                 }
             }
-            .padding(22)
+
+            settingsSection("数据源") {
+                HStack(spacing: 8) {
+                    ForEach(UsageDataSourceMode.allCases) { mode in
+                        SettingsOptionButton(
+                            title: mode.title,
+                            systemImage: mode.systemImage,
+                            isSelected: settingsStore.dataSourceMode == mode
+                        ) {
+                            settingsStore.dataSourceMode = mode
+                        }
+                    }
+                }
+            }
+
+            settingsSection("刷新") {
+                Toggle(isOn: $settingsStore.isIdlePollingEnabled) {
+                    Label("闲置主动轮询", systemImage: "clock.arrow.circlepath")
+                }
+                .toggleStyle(.switch)
+
+                Stepper(
+                    value: $settingsStore.idleRefreshIntervalMinutes,
+                    in: UsageServiceRefreshDefaults.minimumIdleRefreshIntervalMinutes...UsageServiceRefreshDefaults.maximumIdleRefreshIntervalMinutes,
+                    step: 5
+                ) {
+                    SettingsValueRow(
+                        title: "闲置间隔",
+                        value: "\(settingsStore.idleRefreshIntervalMinutes) 分钟",
+                        systemImage: "timer"
+                    )
+                }
+                .disabled(!settingsStore.isIdlePollingEnabled)
+
+                Stepper(
+                    value: $settingsStore.activeRefreshIntervalSeconds,
+                    in: UsageServiceRefreshDefaults.minimumActiveRefreshIntervalSeconds...UsageServiceRefreshDefaults.maximumActiveRefreshIntervalSeconds,
+                    step: 5
+                ) {
+                    SettingsValueRow(
+                        title: "使用中间隔",
+                        value: "\(settingsStore.activeRefreshIntervalSeconds) 秒",
+                        systemImage: "bolt.badge.clock"
+                    )
+                }
+            }
+
+            settingsSection("预算与提醒") {
+                Toggle(isOn: $settingsStore.isDailyBudgetEnabled) {
+                    Label("每日预算", systemImage: "gauge")
+                }
+                .toggleStyle(.switch)
+
+                Stepper(
+                    value: $settingsStore.dailyBudgetTokens,
+                    in: UsageBudgetConfiguration.minimumDailyLimitTokens...UsageBudgetConfiguration.maximumDailyLimitTokens,
+                    step: 10_000
+                ) {
+                    SettingsValueRow(
+                        title: "预算额度",
+                        value: UsageFormatting.tokens(settingsStore.dailyBudgetTokens),
+                        systemImage: "number"
+                    )
+                }
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+
+                Stepper(
+                    value: $settingsStore.warningThresholdPercent,
+                    in: UsageBudgetConfiguration.minimumWarningThresholdPercent...UsageBudgetConfiguration.maximumWarningThresholdPercent,
+                    step: 5
+                ) {
+                    SettingsValueRow(
+                        title: "警告阈值",
+                        value: "\(settingsStore.warningThresholdPercent)%",
+                        systemImage: "bell"
+                    )
+                }
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+
+                Toggle(isOn: $settingsStore.budgetNotificationsEnabled) {
+                    Label("macOS 通知", systemImage: "bell.badge")
+                }
+                .toggleStyle(.switch)
+                .disabled(!settingsStore.isDailyBudgetEnabled)
+            }
         }
-        .frame(width: 470)
+        .padding(22)
+        .frame(width: 560)
+        .tint(.blue)
         .onChange(of: settingsStore.budgetConfiguration) { _, configuration in
             onBudgetConfigurationChange(configuration)
         }
@@ -306,6 +299,24 @@ struct SettingsView: View {
         }
         .onChange(of: settingsStore.refreshConfiguration) { _, configuration in
             onRefreshConfigurationChange(configuration)
+        }
+    }
+
+    private var displayModeColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 8),
+            GridItem(.flexible(), spacing: 8),
+            GridItem(.flexible(), spacing: 8)
+        ]
+    }
+
+    private func settingsSection<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsSectionHeader(title: title)
+            content()
         }
     }
 }
@@ -321,24 +332,47 @@ private struct SettingsSectionHeader: View {
     }
 }
 
-private struct SettingsPickerRow<Content: View>: View {
+private struct SettingsOptionButton: View {
     let title: String
     let systemImage: String
-    @ViewBuilder let picker: () -> Content
+    let isSelected: Bool
+    let action: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Label(title, systemImage: systemImage)
-                .foregroundStyle(.secondary)
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .frame(width: 18)
+                    .foregroundStyle(isSelected ? Color.blue : Color.secondary)
 
-            Spacer(minLength: 16)
+                Text(title)
+                    .lineLimit(1)
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
 
-            picker()
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(width: 190, alignment: .trailing)
+                Spacer(minLength: 4)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.blue)
+                }
+            }
+            .font(.callout)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? Color.blue.opacity(0.14) : Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(
+                        isSelected ? Color.blue : Color(nsColor: .separatorColor),
+                        lineWidth: isSelected ? 1.2 : 0.6
+                    )
+            )
         }
-        .font(.callout)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

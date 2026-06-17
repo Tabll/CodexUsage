@@ -167,7 +167,7 @@ final class UsageService: ObservableObject {
             return "错误"
         }
 
-        return "CodexPlus"
+        return "Codex用量"
     }
 
     var providerName: String {
@@ -489,7 +489,7 @@ final class UsageService: ObservableObject {
             }
 
             let content = UNMutableNotificationContent()
-            content.title = budgetState.severity == .exceeded ? "CodexPlus 预算超限" : "CodexPlus 预算提醒"
+            content.title = budgetState.severity == .exceeded ? "Codex用量 预算超限" : "Codex用量 预算提醒"
             content.body = Self.notificationBody(for: budgetState)
             content.sound = .default
 

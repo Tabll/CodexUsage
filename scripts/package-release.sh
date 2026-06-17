@@ -11,6 +11,7 @@ CODE_SIGN_STYLE="${CODE_SIGN_STYLE:-Manual}"
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 OTHER_CODE_SIGN_FLAGS="${OTHER_CODE_SIGN_FLAGS:-}"
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+ZIP_BASENAME="${ZIP_BASENAME:-CodexUsage}"
 
 export DEVELOPER_DIR
 
@@ -18,24 +19,19 @@ if [[ "$CODE_SIGN_IDENTITY" != "-" && -z "$OTHER_CODE_SIGN_FLAGS" ]]; then
   OTHER_CODE_SIGN_FLAGS="--timestamp"
 fi
 
-version="$(
+build_settings="$(
   xcodebuild -project "$PROJECT_PATH" \
     -target "$SCHEME_NAME" \
     -configuration "$CONFIGURATION" \
-    -showBuildSettings |
-    awk '/MARKETING_VERSION/ { print $3; exit }'
+    -showBuildSettings
 )"
 
-build_number="$(
-  xcodebuild -project "$PROJECT_PATH" \
-    -target "$SCHEME_NAME" \
-    -configuration "$CONFIGURATION" \
-    -showBuildSettings |
-    awk '/CURRENT_PROJECT_VERSION/ { print $3; exit }'
-)"
+version="$(printf '%s\n' "$build_settings" | awk '/MARKETING_VERSION/ { print $3; exit }')"
+build_number="$(printf '%s\n' "$build_settings" | awk '/CURRENT_PROJECT_VERSION/ { print $3; exit }')"
+full_product_name="$(printf '%s\n' "$build_settings" | awk '/FULL_PRODUCT_NAME/ { print $3; exit }')"
 
-if [[ -z "$version" || -z "$build_number" ]]; then
-  echo "无法读取版本号，请检查 Xcode 构建设置。" >&2
+if [[ -z "$version" || -z "$build_number" || -z "$full_product_name" ]]; then
+  echo "无法读取版本号或产物名，请检查 Xcode 构建设置。" >&2
   exit 1
 fi
 
@@ -64,8 +60,8 @@ fi
 echo "Building $SCHEME_NAME $version ($build_number)..."
 xcodebuild clean build "${build_args[@]}"
 
-app_path="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION/CodexPlus.app"
-zip_path="$DIST_DIR/CodexPlus-$version+$build_number.zip"
+app_path="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION/$full_product_name"
+zip_path="$DIST_DIR/$ZIP_BASENAME-$version+$build_number.zip"
 
 if [[ ! -d "$app_path" ]]; then
   echo "未找到构建产物：$app_path" >&2

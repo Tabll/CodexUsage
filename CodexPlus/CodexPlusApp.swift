@@ -50,7 +50,7 @@ struct CodexPlusApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("CodexPlus 设置", id: "settings") {
+        Window("设置", id: "settings") {
             SettingsView(
                 settingsStore: settingsStore,
                 onBudgetConfigurationChange: { configuration in
@@ -67,7 +67,7 @@ struct CodexPlusApp: App {
                 }
             )
         }
-        .defaultSize(width: 470, height: 520)
+        .defaultSize(width: 560, height: 562)
     }
 
     private static func makeUsageProvider(for dataSourceMode: UsageDataSourceMode) -> UsageProvider {

@@ -1,14 +1,14 @@
-# CodexPlus
+# Codex用量
 
-CodexPlus 是一个 macOS 菜单栏 App，用来近实时显示 Codex 桌面端的用量与剩余额度。
+Codex用量 是一个 macOS 菜单栏 App，用来近实时显示 Codex 桌面端的用量与剩余额度。仓库和 Xcode scheme 仍保留 `CodexPlus`，生成的 App 显示名是「Codex用量」。
 
-当前版本：`0.1.0 (1)`
+当前版本：`0.1.1 (1)`
 最低系统：macOS 26
 产品定位：面向分发的本地优先 App
 
 ## 当前状态
 
-CodexPlus 已完成 MVP 到打包发布阶段：
+Codex用量 已完成 MVP 到打包发布阶段：
 
 - 默认读取 Codex 桌面端本地用量日志，不请求 Codex 接口。
 - 状态栏默认显示 `5小时 x% 本周 x%`，用于快速查看 5 小时额度和每周额度。
@@ -57,7 +57,7 @@ CodexPlus 已完成 MVP 到打包发布阶段：
 ~/.codex/sqlite/logs_2.sqlite
 ```
 
-CodexPlus 会检查候选数据库，选择最新可解析的 Codex websocket 日志，解析其中的 usage 和 rate limits 事件，并聚合为统一模型：
+Codex用量 会检查候选数据库，选择最新可解析的 Codex websocket 日志，解析其中的 usage 和 rate limits 事件，并聚合为统一模型：
 
 ```text
 UsageSnapshot
@@ -163,7 +163,7 @@ scripts/package-release.sh
 默认生成：
 
 ```text
-dist/CodexPlus-0.1.0+1.zip
+dist/CodexUsage-0.1.1+1.zip
 ```
 
 Developer ID 签名：
@@ -177,7 +177,7 @@ scripts/package-release.sh
 公证、staple 和最终分发说明见 [打包发布](docs/release.md)。当前已验证的最终分发包命名为：
 
 ```text
-dist/CodexPlus-0.1.0+1.notarized.zip
+dist/CodexUsage-0.1.1+1.notarized.zip
 ```
 
 ## 后续方向

@@ -83,6 +83,15 @@ final class UsageModelTests: XCTestCase {
         XCTAssertEqual(title, "5小时 -- 本周 --")
     }
 
+    func testFallbackMenuBarTitleUsesAppDisplayName() {
+        let title = MenuBarDisplayMode.todayTokens.menuBarTitle(
+            for: nil,
+            status: .idle
+        )
+
+        XCTAssertEqual(title, "Codex用量")
+    }
+
     @MainActor
     func testSettingsStorePersistsRefreshConfiguration() {
         let suiteName = "CodexPlusTests.RefreshConfiguration"
