@@ -1,6 +1,6 @@
 import Foundation
 
-actor MockUsageProvider: UsageProvider, UsageHistoryProvider {
+actor MockUsageProvider: UsageProvider, UsageHistoryProvider, UsageLatestMessageProvider {
     nonisolated let name = "Codex 桌面端（Mock）"
 
     private let sessionId: String
@@ -93,6 +93,30 @@ actor MockUsageProvider: UsageProvider, UsageHistoryProvider {
                 totalTokens: input + output
             )
         }
+    }
+
+    func fetchLatestLogMessage() async throws -> CodexLogMessage {
+        let now = Date()
+        let timestampSeconds = Int64(now.timeIntervalSince1970)
+
+        return CodexLogMessage(
+            id: 42,
+            timestamp: now,
+            timestampSeconds: timestampSeconds,
+            timestampNanoseconds: 120_000_000,
+            level: "INFO",
+            target: "codex_api::endpoint::responses_websocket",
+            content: """
+            session_loop{thread_id=mock-thread}:turn{turn.id=mock-turn}: websocket event: {"type":"response.completed","response":{"usage":{"input_tokens":7200,"output_tokens":3100,"total_tokens":10300,"input_tokens_details":{"cached_tokens":1600},"output_tokens_details":{"reasoning_tokens":520}}}}
+            """,
+            modulePath: "codex_api::endpoint",
+            file: "responses_websocket.rs",
+            line: 128,
+            threadId: "mock-thread",
+            processUUID: "mock-process-uuid",
+            estimatedBytes: 418,
+            databasePath: "Mock 数据"
+        )
     }
 
     private func estimatedCost() -> Decimal {

@@ -170,6 +170,57 @@ struct DailyUsageSummary: Codable, Equatable, Identifiable {
     }
 }
 
+struct CodexLogMessage: Codable, Equatable, Identifiable {
+    let id: Int64
+    let timestamp: Date
+    let timestampSeconds: Int64
+    let timestampNanoseconds: Int64
+    let level: String
+    let target: String
+    let content: String?
+    let modulePath: String?
+    let file: String?
+    let line: Int?
+    let threadId: String?
+    let processUUID: String?
+    let estimatedBytes: Int64
+    let databasePath: String
+
+    var metadataRows: [(title: String, value: String)] {
+        [
+            ("ID", "\(id)"),
+            ("时间", UsageFormatting.dateTime(timestamp)),
+            ("ts", "\(timestampSeconds)"),
+            ("ts_nanos", "\(timestampNanoseconds)"),
+            ("级别", level),
+            ("目标", target),
+            ("模块路径", optionalText(modulePath)),
+            ("文件", optionalText(file)),
+            ("行号", line.map(String.init) ?? "--"),
+            ("线程 ID", optionalText(threadId)),
+            ("进程 UUID", optionalText(processUUID)),
+            ("估算字节数", "\(estimatedBytes)"),
+            ("数据库", databasePath)
+        ]
+    }
+
+    var contentText: String {
+        guard let content, !content.isEmpty else {
+            return "无内容"
+        }
+
+        return content
+    }
+
+    private func optionalText(_ value: String?) -> String {
+        guard let value, !value.isEmpty else {
+            return "--"
+        }
+
+        return value
+    }
+}
+
 struct UsageBudgetConfiguration: Codable, Equatable {
     static let defaultDailyLimitTokens = 150_000
     static let defaultWarningThresholdPercent = 80
@@ -342,6 +393,14 @@ enum UsageFormatting {
         return timeFormatter.string(from: date)
     }
 
+    static func dateTime(_ date: Date?) -> String {
+        guard let date else {
+            return "--"
+        }
+
+        return dateTimeFormatter.string(from: date)
+    }
+
     private static let costFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -353,6 +412,13 @@ enum UsageFormatting {
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
+        formatter.timeStyle = .medium
+        return formatter
+    }()
+
+    private static let dateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
         formatter.timeStyle = .medium
         return formatter
     }()

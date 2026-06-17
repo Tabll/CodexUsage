@@ -38,6 +38,10 @@ protocol UsageHistoryProvider {
     func fetchDailyUsageHistory(days: Int) async throws -> [DailyUsageSummary]
 }
 
+protocol UsageLatestMessageProvider {
+    func fetchLatestLogMessage() async throws -> CodexLogMessage
+}
+
 extension UsageProvider {
     var refreshHintFiles: [URL] {
         []

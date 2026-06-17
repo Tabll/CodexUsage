@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider {
+struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLatestMessageProvider {
     let name = "Codex 桌面端"
 
     private let databaseCandidates: [URL]
@@ -35,6 +35,12 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider {
     func fetchDailyUsageHistory(days: Int) async throws -> [DailyUsageSummary] {
         try await Task.detached(priority: .utility) {
             try loadDailyUsageHistory(days: days)
+        }.value
+    }
+
+    func fetchLatestLogMessage() async throws -> CodexLogMessage {
+        try await Task.detached(priority: .utility) {
+            try loadLatestLogMessage()
         }.value
     }
 
@@ -205,6 +211,55 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider {
         }
     }
 
+    private func loadLatestLogMessage() throws -> CodexLogMessage {
+        let databaseURLs = readableDatabaseURLs()
+
+        guard !databaseURLs.isEmpty else {
+            throw UsageProviderError.unavailable("找不到 Codex 桌面端用量数据库")
+        }
+
+        var latestMessage: CodexLogMessage?
+        var errors: [Error] = []
+
+        for databaseURL in databaseURLs {
+            do {
+                let message = try readLatestLogMessage(from: databaseURL)
+
+                if let currentLatest = latestMessage {
+                    if isMessage(message, newerThan: currentLatest) {
+                        latestMessage = message
+                    }
+                } else {
+                    latestMessage = message
+                }
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if let latestMessage {
+            return latestMessage
+        }
+
+        if let providerError = errors.first as? UsageProviderError {
+            throw providerError
+        }
+
+        throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可读取的日志消息")
+    }
+
+    private func isMessage(_ lhs: CodexLogMessage, newerThan rhs: CodexLogMessage) -> Bool {
+        if lhs.timestampSeconds != rhs.timestampSeconds {
+            return lhs.timestampSeconds > rhs.timestampSeconds
+        }
+
+        if lhs.timestampNanoseconds != rhs.timestampNanoseconds {
+            return lhs.timestampNanoseconds > rhs.timestampNanoseconds
+        }
+
+        return lhs.id > rhs.id
+    }
+
     private func readCandidateRows(from databaseURL: URL) throws -> [CodexUsageLogRow] {
         var database: OpaquePointer?
         let openResult = sqlite3_open_v2(
@@ -265,6 +320,102 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider {
         }
 
         return rows
+    }
+
+    private func readLatestLogMessage(from databaseURL: URL) throws -> CodexLogMessage {
+        var database: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &database,
+            SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+
+        guard openResult == SQLITE_OK, let database else {
+            let message = database.map { String(cString: sqlite3_errmsg($0)) } ?? "无法打开数据库"
+            if let database {
+                sqlite3_close(database)
+            }
+            throw UsageProviderError.unavailable(message)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        sqlite3_busy_timeout(database, 100)
+
+        let sql = """
+        SELECT
+            id,
+            ts,
+            ts_nanos,
+            level,
+            target,
+            feedback_log_body,
+            module_path,
+            file,
+            line,
+            thread_id,
+            process_uuid,
+            estimated_bytes
+        FROM logs
+        ORDER BY ts DESC, ts_nanos DESC, id DESC
+        LIMIT 1;
+        """
+
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else {
+            throw UsageProviderError.malformedData(String(cString: sqlite3_errmsg(database)))
+        }
+
+        defer {
+            sqlite3_finalize(statement)
+        }
+
+        guard sqlite3_step(statement) == SQLITE_ROW else {
+            throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有日志消息")
+        }
+
+        let timestampSeconds = sqlite3_column_int64(statement, 1)
+        let timestampNanoseconds = sqlite3_column_int64(statement, 2)
+        let timestamp = Date(
+            timeIntervalSince1970: TimeInterval(timestampSeconds) + TimeInterval(timestampNanoseconds) / 1_000_000_000
+        )
+
+        return CodexLogMessage(
+            id: sqlite3_column_int64(statement, 0),
+            timestamp: timestamp,
+            timestampSeconds: timestampSeconds,
+            timestampNanoseconds: timestampNanoseconds,
+            level: columnText(statement, 3) ?? "",
+            target: columnText(statement, 4) ?? "",
+            content: columnText(statement, 5),
+            modulePath: columnText(statement, 6),
+            file: columnText(statement, 7),
+            line: optionalInt(statement, 8),
+            threadId: columnText(statement, 9),
+            processUUID: columnText(statement, 10),
+            estimatedBytes: sqlite3_column_int64(statement, 11),
+            databasePath: databaseURL.path
+        )
+    }
+
+    private func columnText(_ statement: OpaquePointer?, _ index: Int32) -> String? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL,
+              let pointer = sqlite3_column_text(statement, index) else {
+            return nil
+        }
+
+        return String(cString: pointer)
+    }
+
+    private func optionalInt(_ statement: OpaquePointer?, _ index: Int32) -> Int? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+
+        return Int(sqlite3_column_int(statement, index))
     }
 
     private func readHistoryRows(from databaseURL: URL, since startTimestamp: Int64) throws -> [CodexUsageLogRow] {

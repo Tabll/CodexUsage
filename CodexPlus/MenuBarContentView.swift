@@ -189,6 +189,7 @@ struct SettingsView: View {
     let onRefreshConfigurationChange: (UsageRefreshConfiguration) -> Void
 
     @State private var isUsageChartPresented = false
+    @State private var isLatestMessagePresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -221,12 +222,22 @@ struct SettingsView: View {
             }
 
             settingsSection("用量统计") {
-                SettingsActionButton(
-                    title: "用量图表",
-                    detail: "最近一周 / 30 天",
-                    systemImage: "chart.xyaxis.line"
-                ) {
-                    isUsageChartPresented = true
+                VStack(spacing: 8) {
+                    SettingsActionButton(
+                        title: "用量图表",
+                        detail: "最近一周 / 30 天",
+                        systemImage: "chart.xyaxis.line"
+                    ) {
+                        isUsageChartPresented = true
+                    }
+
+                    SettingsActionButton(
+                        title: "最近消息",
+                        detail: "查看完整日志",
+                        systemImage: "text.bubble"
+                    ) {
+                        isLatestMessagePresented = true
+                    }
                 }
             }
 
@@ -307,6 +318,10 @@ struct SettingsView: View {
         .sheet(isPresented: $isUsageChartPresented) {
             UsageHistoryChartSheet(dataSourceMode: settingsStore.dataSourceMode)
                 .frame(width: 760, height: 540)
+        }
+        .sheet(isPresented: $isLatestMessagePresented) {
+            LatestMessageSheet(dataSourceMode: settingsStore.dataSourceMode)
+                .frame(width: 760, height: 620)
         }
         .onChange(of: settingsStore.budgetConfiguration) { _, configuration in
             onBudgetConfigurationChange(configuration)
@@ -448,6 +463,275 @@ private struct SettingsActionButton: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct LatestMessageSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let dataSourceMode: UsageDataSourceMode
+
+    @State private var message: CodexLogMessage?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var didCopyContent = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+
+            content
+        }
+        .padding(22)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .task {
+            await loadLatestMessage()
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("最近消息")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("最新一条日志 · \(dataSourceMode.title)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                Task {
+                    await loadLatestMessage()
+                }
+            } label: {
+                Label("刷新", systemImage: "arrow.clockwise")
+            }
+            .disabled(isLoading)
+
+            Button {
+                copyContent()
+            } label: {
+                Label(didCopyContent ? "已复制" : "复制内容", systemImage: didCopyContent ? "checkmark" : "doc.on.doc")
+            }
+            .disabled(message == nil)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.borderless)
+            .help("关闭")
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isLoading {
+            LatestMessagePanel {
+                ProgressView("正在读取最近消息")
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } else if let errorMessage {
+            LatestMessagePanel {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+
+                    Text("无法读取最近消息")
+                        .font(.headline)
+
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(24)
+            }
+        } else if let message {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    LatestMessageMetadataGrid(message: message)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 7) {
+                            Image(systemName: "text.alignleft")
+                                .foregroundStyle(Color.blue)
+
+                            Text("内容")
+                                .font(.headline)
+
+                            Spacer()
+
+                            Text("\(message.contentText.count) 字符")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+
+                        ScrollView {
+                            Text(message.contentText)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.primary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(12)
+                        }
+                        .frame(minHeight: 230)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(nsColor: .textBackgroundColor))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.blue.opacity(0.12), lineWidth: 0.8)
+                        )
+                    }
+                }
+                .padding(14)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.blue.opacity(0.16), lineWidth: 0.8)
+            )
+        }
+    }
+
+    @MainActor
+    private func loadLatestMessage() async {
+        isLoading = true
+        errorMessage = nil
+        didCopyContent = false
+
+        do {
+            let provider = makeLatestMessageProvider()
+            let latestMessage = try await provider.fetchLatestLogMessage()
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            message = latestMessage
+            isLoading = false
+        } catch {
+            guard !Task.isCancelled else {
+                return
+            }
+
+            message = nil
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+
+    private func makeLatestMessageProvider() -> any UsageLatestMessageProvider {
+        switch dataSourceMode {
+        case .codexDesktop:
+            return CodexDesktopUsageProvider()
+        case .mock:
+            return MockUsageProvider()
+        }
+    }
+
+    private func copyContent() {
+        guard let message else {
+            return
+        }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(message.contentText, forType: .string)
+        didCopyContent = true
+    }
+}
+
+private struct LatestMessagePanel<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.blue.opacity(0.16), lineWidth: 0.8)
+                )
+
+            content()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct LatestMessageMetadataGrid: View {
+    let message: CodexLogMessage
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                Image(systemName: "list.bullet.rectangle")
+                    .foregroundStyle(Color.blue)
+
+                Text("数据")
+                    .font(.headline)
+            }
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                ForEach(Array(message.metadataRows.enumerated()), id: \.offset) { _, row in
+                    LatestMessageMetadataRow(title: row.title, value: row.value)
+                }
+            }
+        }
+    }
+}
+
+private struct LatestMessageMetadataRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+
+            Text(value)
+                .font(.caption)
+                .monospacedDigit()
+                .lineLimit(2)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 7)
+                .fill(Color(nsColor: .windowBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .stroke(Color.blue.opacity(0.10), lineWidth: 0.7)
+        )
     }
 }
 

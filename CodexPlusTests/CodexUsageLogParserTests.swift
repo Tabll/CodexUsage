@@ -178,6 +178,64 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(history[2].totalTokens, 280)
     }
 
+    func testDesktopProviderReadsLatestLogMessage() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let databaseURL = directory.appendingPathComponent("latest-message.sqlite")
+        let olderTimestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        let newerTimestamp = Date(timeIntervalSince1970: 1_700_000_100)
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        var database: OpaquePointer?
+        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK, let database else {
+            throw sqliteError(database)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try createFullLogsTable(database: database)
+        try insertFullLogMessage(
+            timestamp: olderTimestamp,
+            timestampNanoseconds: 1,
+            level: "DEBUG",
+            target: "older-target",
+            body: "older body",
+            threadId: "older-thread",
+            database: database
+        )
+        try insertFullLogMessage(
+            timestamp: newerTimestamp,
+            timestampNanoseconds: 9,
+            level: "INFO",
+            target: "newer-target",
+            body: "newer body",
+            threadId: "newer-thread",
+            database: database
+        )
+
+        let provider = CodexDesktopUsageProvider(databaseCandidates: [databaseURL])
+        let message = try await provider.fetchLatestLogMessage()
+
+        XCTAssertEqual(message.timestampSeconds, Int64(newerTimestamp.timeIntervalSince1970))
+        XCTAssertEqual(message.timestampNanoseconds, 9)
+        XCTAssertEqual(message.level, "INFO")
+        XCTAssertEqual(message.target, "newer-target")
+        XCTAssertEqual(message.content, "newer body")
+        XCTAssertEqual(message.threadId, "newer-thread")
+        XCTAssertEqual(message.modulePath, "test.module")
+        XCTAssertEqual(message.file, "test.swift")
+        XCTAssertEqual(message.line, 42)
+        XCTAssertEqual(message.processUUID, "test-process")
+        XCTAssertEqual(message.estimatedBytes, 128)
+        XCTAssertEqual(message.databasePath, databaseURL.path)
+    }
+
     private func fixture(named name: String, fileExtension: String) throws -> String {
         let url = try XCTUnwrap(
             Bundle(for: Self.self).url(forResource: name, withExtension: fileExtension)
@@ -233,6 +291,28 @@ final class CodexUsageLogParserTests: XCTestCase {
         )
     }
 
+    private func createFullLogsTable(database: OpaquePointer) throws {
+        try execute(
+            """
+            CREATE TABLE logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts INTEGER NOT NULL,
+                ts_nanos INTEGER NOT NULL,
+                level TEXT NOT NULL,
+                target TEXT NOT NULL,
+                feedback_log_body TEXT,
+                module_path TEXT,
+                file TEXT,
+                line INTEGER,
+                thread_id TEXT,
+                process_uuid TEXT,
+                estimated_bytes INTEGER NOT NULL DEFAULT 0
+            );
+            """,
+            database: database
+        )
+    }
+
     private func execute(_ sql: String, database: OpaquePointer) throws {
         guard sqlite3_exec(database, sql, nil, nil, nil) == SQLITE_OK else {
             throw sqliteError(database)
@@ -250,6 +330,59 @@ final class CodexUsageLogParserTests: XCTestCase {
                 \(timestampSeconds),
                 'codex_api::endpoint::responses_websocket',
                 '\(escapedBody)'
+            );
+            """,
+            database: database
+        )
+    }
+
+    private func insertFullLogMessage(
+        timestamp: Date,
+        timestampNanoseconds: Int,
+        level: String,
+        target: String,
+        body: String,
+        threadId: String,
+        database: OpaquePointer
+    ) throws {
+        let values = [
+            level,
+            target,
+            body,
+            "test.module",
+            "test.swift",
+            threadId,
+            "test-process"
+        ].map { $0.replacingOccurrences(of: "'", with: "''") }
+        let timestampSeconds = Int(timestamp.timeIntervalSince1970)
+
+        try execute(
+            """
+            INSERT INTO logs (
+                ts,
+                ts_nanos,
+                level,
+                target,
+                feedback_log_body,
+                module_path,
+                file,
+                line,
+                thread_id,
+                process_uuid,
+                estimated_bytes
+            )
+            VALUES (
+                \(timestampSeconds),
+                \(timestampNanoseconds),
+                '\(values[0])',
+                '\(values[1])',
+                '\(values[2])',
+                '\(values[3])',
+                '\(values[4])',
+                42,
+                '\(values[5])',
+                '\(values[6])',
+                128
             );
             """,
             database: database
