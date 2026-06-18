@@ -51,19 +51,19 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
             throw UsageProviderError.unavailable("找不到 Codex 桌面端用量数据库")
         }
 
-        var snapshots: [UsageSnapshot] = []
+        var rows: [CodexUsageLogRow] = []
         var errors: [Error] = []
 
         for databaseURL in databaseURLs {
             do {
-                snapshots.append(try loadSnapshot(from: databaseURL))
+                rows.append(contentsOf: try readCandidateRows(from: databaseURL))
             } catch {
                 errors.append(error)
             }
         }
 
-        if let latestSnapshot = snapshots.max(by: { $0.updatedAt < $1.updatedAt }) {
-            return latestSnapshot
+        if !rows.isEmpty {
+            return try makeSnapshot(from: rows)
         }
 
         if let providerError = errors.first as? UsageProviderError {
@@ -73,26 +73,28 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可解析的 usage")
     }
 
-    private func loadSnapshot(from databaseURL: URL) throws -> UsageSnapshot {
-        let rows = try readCandidateRows(from: databaseURL)
+    private func makeSnapshot(from rows: [CodexUsageLogRow]) throws -> UsageSnapshot {
         let events = readUsageEvents(from: rows)
         let latestRateLimits = readLatestRateLimits(from: rows)
+        let latestEvent = events.max(by: { $0.timestamp < $1.timestamp })
 
-        guard let latestEvent = events.max(by: { $0.timestamp < $1.timestamp }) else {
-            throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可解析的 response.completed usage")
+        guard latestEvent != nil || latestRateLimits != nil else {
+            throw UsageProviderError.unavailable("Codex 用量数据库中暂时没有可解析的 usage 或 rate limit")
         }
 
         let todayStart = calendar.startOfDay(for: Date())
-        let currentSessionEvents = events.filter { $0.threadId == latestEvent.threadId }
+        let currentSessionEvents = latestEvent.map { latestEvent in
+            events.filter { $0.threadId == latestEvent.threadId }
+        } ?? []
         let todayTotalTokens = events
             .filter { $0.timestamp >= todayStart }
             .reduce(0) { $0 + $1.totalTokens }
-        let snapshotUpdatedAt = [latestEvent.timestamp, latestRateLimits?.updatedAt]
+        let snapshotUpdatedAt = [latestEvent?.timestamp, latestRateLimits?.updatedAt]
             .compactMap { $0 }
-            .max() ?? latestEvent.timestamp
+            .max() ?? Date()
 
         return UsageSnapshot(
-            sessionId: latestEvent.threadId,
+            sessionId: latestEvent?.threadId ?? "codex-desktop-rate-limits",
             providerName: name,
             updatedAt: snapshotUpdatedAt,
             inputTokens: currentSessionEvents.reduce(0) { $0 + $1.inputTokens },
@@ -115,6 +117,11 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
                 body: row.body,
                 timestamp: row.timestamp
             ) else {
+                continue
+            }
+
+            if let existingEvent = eventsByTurnId[event.turnId],
+               existingEvent.timestamp > event.timestamp {
                 continue
             }
 
@@ -160,6 +167,11 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
                         body: row.body,
                         timestamp: row.timestamp
                     ) else {
+                        continue
+                    }
+
+                    if let existingEvent = eventsByTurnId[event.turnId],
+                       existingEvent.timestamp > event.timestamp {
                         continue
                     }
 
@@ -287,7 +299,11 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         SELECT ts, feedback_log_body
         FROM logs
         WHERE target = 'codex_api::endpoint::responses_websocket'
-        ORDER BY id DESC
+          AND (
+            feedback_log_body LIKE '%"type":"response.completed"%'
+            OR feedback_log_body LIKE '%"type":"codex.rate_limits"%'
+          )
+        ORDER BY ts DESC, id DESC
         LIMIT ?;
         """
 
@@ -446,6 +462,7 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         FROM logs
         WHERE target = 'codex_api::endpoint::responses_websocket'
           AND ts >= ?
+          AND feedback_log_body LIKE '%"type":"response.completed"%'
         ORDER BY ts ASC, id ASC;
         """
 

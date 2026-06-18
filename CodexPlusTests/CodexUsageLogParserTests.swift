@@ -98,6 +98,56 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 28)
     }
 
+    func testDesktopProviderReadsRateLimitsWithoutCompletedUsage() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let databaseURL = directory.appendingPathComponent("rate-limits-only.sqlite")
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_300)
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        var database: OpaquePointer?
+        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK, let database else {
+            throw sqliteError(database)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try createLogsTable(database: database)
+        try insertLogBody(
+            rateLimitsBody(
+                timestamp: timestamp,
+                shortUsedPercent: 12,
+                weeklyUsedPercent: 11
+            ),
+            timestamp: timestamp,
+            database: database
+        )
+
+        let provider = CodexDesktopUsageProvider(
+            databaseCandidates: [databaseURL],
+            recentRowLimit: 20
+        )
+
+        let snapshot = try await provider.fetchSnapshot()
+
+        XCTAssertEqual(snapshot.sessionId, "codex-desktop-rate-limits")
+        XCTAssertEqual(snapshot.updatedAt, timestamp)
+        XCTAssertEqual(snapshot.inputTokens, 0)
+        XCTAssertEqual(snapshot.outputTokens, 0)
+        XCTAssertEqual(snapshot.cachedInputTokens, 0)
+        XCTAssertEqual(snapshot.reasoningTokens, 0)
+        XCTAssertEqual(snapshot.totalTokens, 0)
+        XCTAssertEqual(snapshot.todayTotalTokens, 0)
+        XCTAssertEqual(snapshot.rateLimits?.shortWindow?.remainingPercent, 88)
+        XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 89)
+    }
+
     func testDesktopProviderAggregatesDailyUsageHistory() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)

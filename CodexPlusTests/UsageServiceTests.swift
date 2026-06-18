@@ -124,6 +124,26 @@ final class UsageServiceTests: XCTestCase {
         XCTAssertEqual(provider.fetchCount, 2)
     }
 
+    func testRefreshKeepsCurrentSnapshotWhenProviderReturnsOlderData() async {
+        let newerSnapshot = makeSnapshot(
+            updatedAt: Date(timeIntervalSince1970: 200),
+            todayTotalTokens: 20_000
+        )
+        let olderSnapshot = makeSnapshot(
+            updatedAt: Date(timeIntervalSince1970: 100),
+            todayTotalTokens: 10_000
+        )
+        let provider = SequenceUsageProvider(snapshots: [newerSnapshot, olderSnapshot])
+        let service = UsageService(provider: provider, startsImmediately: false)
+
+        await service.refreshNow()
+        await service.refreshNow()
+
+        XCTAssertEqual(service.snapshot?.updatedAt, newerSnapshot.updatedAt)
+        XCTAssertEqual(service.snapshot?.todayTotalTokens, 20_000)
+        XCTAssertEqual(service.status, .current)
+    }
+
     func testDisabledIdlePollingOnlyRefreshesOnStart() async throws {
         let provider = CountingUsageProvider(snapshot: makeSnapshot())
         let service = UsageService(
@@ -174,6 +194,30 @@ final class UsageServiceTests: XCTestCase {
         }
 
         XCTAssertEqual(provider.fetchCount, expectedCount)
+    }
+}
+
+private final class SequenceUsageProvider: UsageProvider {
+    private var snapshots: [UsageSnapshot]
+
+    var name: String {
+        "Sequence Provider"
+    }
+
+    init(snapshots: [UsageSnapshot]) {
+        self.snapshots = snapshots
+    }
+
+    func fetchSnapshot() async throws -> UsageSnapshot {
+        guard !snapshots.isEmpty else {
+            throw UsageProviderError.unavailable("missing snapshot")
+        }
+
+        if snapshots.count == 1 {
+            return snapshots[0]
+        }
+
+        return snapshots.removeFirst()
     }
 }
 

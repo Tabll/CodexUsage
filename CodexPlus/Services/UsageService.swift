@@ -310,6 +310,15 @@ final class UsageService: ObservableObject {
         do {
             let nextSnapshot = try await provider.fetchSnapshot()
             let configuredSnapshot = applyBudgetConfiguration(to: nextSnapshot)
+
+            if let currentSnapshot = snapshot,
+               configuredSnapshot.updatedAt < currentSnapshot.updatedAt {
+                lastErrorMessage = nil
+                status = status(for: budgetState)
+                scheduleStaleCheck(from: currentSnapshot.updatedAt)
+                return
+            }
+
             let nextBudgetState = UsageBudgetState(
                 configuration: budgetConfiguration,
                 usedTokens: configuredSnapshot.todayTotalTokens
