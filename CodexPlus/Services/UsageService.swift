@@ -309,7 +309,10 @@ final class UsageService: ObservableObject {
 
         do {
             let nextSnapshot = try await provider.fetchSnapshot()
-            let configuredSnapshot = applyBudgetConfiguration(to: nextSnapshot)
+            let configuredSnapshot = preserveFreshRateLimits(
+                in: applyBudgetConfiguration(to: nextSnapshot),
+                currentSnapshot: snapshot
+            )
 
             if let currentSnapshot = snapshot,
                configuredSnapshot.updatedAt < currentSnapshot.updatedAt {
@@ -455,6 +458,25 @@ final class UsageService: ObservableObject {
     private func applyBudgetConfiguration(to snapshot: UsageSnapshot) -> UsageSnapshot {
         let limitTokens = budgetConfiguration.isEnabled ? budgetConfiguration.dailyLimitTokens : nil
         return snapshot.withBudgetLimitTokens(limitTokens)
+    }
+
+    private func preserveFreshRateLimits(
+        in nextSnapshot: UsageSnapshot,
+        currentSnapshot: UsageSnapshot?
+    ) -> UsageSnapshot {
+        guard let currentRateLimits = currentSnapshot?.rateLimits else {
+            return nextSnapshot
+        }
+
+        guard let nextRateLimits = nextSnapshot.rateLimits else {
+            return nextSnapshot.withRateLimits(currentRateLimits)
+        }
+
+        if nextRateLimits.updatedAt < currentRateLimits.updatedAt {
+            return nextSnapshot.withRateLimits(currentRateLimits)
+        }
+
+        return nextSnapshot
     }
 
     private func status(for budgetState: UsageBudgetState) -> UsageServiceStatus {

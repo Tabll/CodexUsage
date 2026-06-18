@@ -148,6 +148,28 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 89)
     }
 
+    func testDesktopProviderWatchesAllDatabaseCandidates() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let primaryDatabaseURL = directory.appendingPathComponent("logs_2.sqlite")
+        let secondaryDatabaseURL = directory
+            .appendingPathComponent("sqlite", isDirectory: true)
+            .appendingPathComponent("logs_2.sqlite")
+        let provider = CodexDesktopUsageProvider(
+            databaseCandidates: [primaryDatabaseURL, secondaryDatabaseURL]
+        )
+        let hintPaths = Set(provider.refreshHintFiles.map(\.standardizedFileURL.path))
+
+        XCTAssertTrue(hintPaths.contains(directory.standardizedFileURL.path))
+        XCTAssertTrue(hintPaths.contains(primaryDatabaseURL.standardizedFileURL.path))
+        XCTAssertTrue(hintPaths.contains(primaryDatabaseURL.standardizedFileURL.path + "-wal"))
+        XCTAssertTrue(hintPaths.contains(primaryDatabaseURL.standardizedFileURL.path + "-shm"))
+        XCTAssertTrue(hintPaths.contains(secondaryDatabaseURL.deletingLastPathComponent().standardizedFileURL.path))
+        XCTAssertTrue(hintPaths.contains(secondaryDatabaseURL.standardizedFileURL.path))
+        XCTAssertTrue(hintPaths.contains(secondaryDatabaseURL.standardizedFileURL.path + "-wal"))
+        XCTAssertTrue(hintPaths.contains(secondaryDatabaseURL.standardizedFileURL.path + "-shm"))
+    }
+
     func testDesktopProviderAggregatesDailyUsageHistory() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)

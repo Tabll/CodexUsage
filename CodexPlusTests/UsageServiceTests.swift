@@ -144,6 +144,40 @@ final class UsageServiceTests: XCTestCase {
         XCTAssertEqual(service.status, .current)
     }
 
+    func testRefreshKeepsFreshRateLimitsWhenUsageSnapshotIsNewer() async {
+        let freshRateLimits = makeRateLimits(
+            updatedAt: Date(timeIntervalSince1970: 200),
+            shortUsedPercent: 9,
+            weeklyUsedPercent: 14
+        )
+        let staleRateLimits = makeRateLimits(
+            updatedAt: Date(timeIntervalSince1970: 100),
+            shortUsedPercent: 19,
+            weeklyUsedPercent: 12
+        )
+        let firstSnapshot = makeSnapshot(
+            updatedAt: Date(timeIntervalSince1970: 200),
+            todayTotalTokens: 20_000,
+            rateLimits: freshRateLimits
+        )
+        let newerUsageWithStaleRateLimits = makeSnapshot(
+            updatedAt: Date(timeIntervalSince1970: 300),
+            todayTotalTokens: 30_000,
+            rateLimits: staleRateLimits
+        )
+        let provider = SequenceUsageProvider(snapshots: [firstSnapshot, newerUsageWithStaleRateLimits])
+        let service = UsageService(provider: provider, startsImmediately: false)
+
+        await service.refreshNow()
+        await service.refreshNow()
+
+        XCTAssertEqual(service.snapshot?.updatedAt, newerUsageWithStaleRateLimits.updatedAt)
+        XCTAssertEqual(service.snapshot?.todayTotalTokens, 30_000)
+        XCTAssertEqual(service.snapshot?.rateLimits, freshRateLimits)
+        XCTAssertEqual(service.snapshot?.rateLimits?.shortWindow?.remainingPercent, 91)
+        XCTAssertEqual(service.snapshot?.rateLimits?.weeklyWindow?.remainingPercent, 86)
+    }
+
     func testDisabledIdlePollingOnlyRefreshesOnStart() async throws {
         let provider = CountingUsageProvider(snapshot: makeSnapshot())
         let service = UsageService(
@@ -164,7 +198,8 @@ final class UsageServiceTests: XCTestCase {
 
     private func makeSnapshot(
         updatedAt: Date = Date(),
-        todayTotalTokens: Int = 42_000
+        todayTotalTokens: Int = 42_000,
+        rateLimits: UsageRateLimitSnapshot? = nil
     ) -> UsageSnapshot {
         UsageSnapshot(
             sessionId: "test-session",
@@ -178,7 +213,33 @@ final class UsageServiceTests: XCTestCase {
             todayTotalTokens: todayTotalTokens,
             estimatedCost: nil,
             budgetLimitTokens: nil,
-            rateLimits: nil
+            rateLimits: rateLimits
+        )
+    }
+
+    private func makeRateLimits(
+        updatedAt: Date,
+        shortUsedPercent: Int,
+        weeklyUsedPercent: Int
+    ) -> UsageRateLimitSnapshot {
+        UsageRateLimitSnapshot(
+            planType: "prolite",
+            updatedAt: updatedAt,
+            allowed: true,
+            limitReached: false,
+            shortWindow: UsageRateLimitWindow(
+                usedPercent: shortUsedPercent,
+                windowMinutes: 300,
+                resetAfterSeconds: nil,
+                resetAt: nil
+            ),
+            weeklyWindow: UsageRateLimitWindow(
+                usedPercent: weeklyUsedPercent,
+                windowMinutes: 10_080,
+                resetAfterSeconds: nil,
+                resetAt: nil
+            ),
+            monthlyWindow: nil
         )
     }
 

@@ -19,11 +19,11 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
     }
 
     var refreshHintFiles: [URL] {
-        guard let databaseURL = mostRecentlyActiveDatabaseURL() else {
-            return []
-        }
-
-        return refreshHintFiles(for: databaseURL)
+        uniqueURLs(
+            databaseCandidates.flatMap { databaseURL in
+                [databaseURL.deletingLastPathComponent()] + refreshHintFiles(for: databaseURL)
+            }
+        )
     }
 
     func fetchSnapshot() async throws -> UsageSnapshot {
@@ -501,26 +501,21 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         databaseCandidates.filter { FileManager.default.isReadableFile(atPath: $0.path) }
     }
 
-    private func mostRecentlyActiveDatabaseURL() -> URL? {
-        readableDatabaseURLs().max { lhs, rhs in
-            latestModificationDate(for: lhs) < latestModificationDate(for: rhs)
-        }
-    }
-
-    private func latestModificationDate(for databaseURL: URL) -> Date {
-        refreshHintFiles(for: databaseURL)
-            .compactMap { url in
-                try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
-            }
-            .max() ?? .distantPast
-    }
-
     private func refreshHintFiles(for databaseURL: URL) -> [URL] {
         [
             databaseURL,
             URL(fileURLWithPath: databaseURL.path + "-wal"),
             URL(fileURLWithPath: databaseURL.path + "-shm")
         ]
+    }
+
+    private func uniqueURLs(_ urls: [URL]) -> [URL] {
+        var seenPaths = Set<String>()
+
+        return urls.filter { url in
+            let path = url.standardizedFileURL.path
+            return seenPaths.insert(path).inserted
+        }
     }
 
     private static func defaultDatabaseCandidates() -> [URL] {

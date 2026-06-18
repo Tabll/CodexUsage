@@ -44,6 +44,23 @@ struct UsageSnapshot: Codable, Equatable, Identifiable {
         )
     }
 
+    func withRateLimits(_ rateLimits: UsageRateLimitSnapshot?) -> UsageSnapshot {
+        UsageSnapshot(
+            sessionId: sessionId,
+            providerName: providerName,
+            updatedAt: updatedAt,
+            inputTokens: inputTokens,
+            outputTokens: outputTokens,
+            cachedInputTokens: cachedInputTokens,
+            reasoningTokens: reasoningTokens,
+            totalTokens: totalTokens,
+            todayTotalTokens: todayTotalTokens,
+            estimatedCost: estimatedCost,
+            budgetLimitTokens: budgetLimitTokens,
+            rateLimits: rateLimits
+        )
+    }
+
     static var preview: UsageSnapshot {
         UsageSnapshot(
             sessionId: "preview-codex-desktop-session",
