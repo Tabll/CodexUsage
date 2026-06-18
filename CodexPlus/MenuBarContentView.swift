@@ -22,6 +22,7 @@ struct MenuBarContentView: View {
                     title: "5小时",
                     value: shortWindowRemainingText,
                     caption: shortWindowResetText,
+                    progressPercent: snapshot?.rateLimits?.shortWindow?.remainingPercent,
                     systemImage: "hourglass"
                 )
 
@@ -29,6 +30,7 @@ struct MenuBarContentView: View {
                     title: "本周",
                     value: weeklyWindowRemainingText,
                     caption: weeklyWindowResetText,
+                    progressPercent: snapshot?.rateLimits?.weeklyWindow?.remainingPercent,
                     systemImage: "calendar"
                 )
             }
@@ -156,7 +158,7 @@ struct MenuBarContentView: View {
             return "等待数据"
         }
 
-        return "刷新 \(UsageFormatting.time(window.resetAt))"
+        return "刷新 \(UsageFormatting.monthDayTime(window.resetAt))"
     }
 
     private func monthlyWindowText(_ window: UsageRateLimitWindow) -> String {
@@ -1209,17 +1211,24 @@ private struct RateLimitTile: View {
     let title: String
     let value: String
     let caption: String
+    let progressPercent: Int?
     let systemImage: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: systemImage)
+                        .foregroundStyle(.secondary)
 
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text(title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 4)
+
+                RateLimitProgressRing(percent: progressPercent)
             }
 
             Text(value)
@@ -1237,6 +1246,57 @@ private struct RateLimitTile: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.55), lineWidth: 0.5)
+        )
+    }
+}
+
+private struct RateLimitProgressRing: View {
+    let percent: Int?
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.secondary.opacity(0.16), lineWidth: 4)
+
+            if let percent {
+                Circle()
+                    .trim(from: 0, to: normalizedProgress(percent))
+                    .stroke(
+                        ringColor(for: percent),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+            }
+        }
+        .frame(width: 34, height: 34)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        guard let percent else {
+            return "等待剩余额度"
+        }
+
+        return "剩余 \(percent)%"
+    }
+
+    private func normalizedProgress(_ percent: Int) -> Double {
+        min(max(Double(percent) / 100, 0), 1)
+    }
+
+    private func ringColor(for percent: Int) -> Color {
+        if percent < 15 {
+            return .red
+        }
+
+        if percent < 30 {
+            return .orange
+        }
+
+        return .blue
     }
 }
 

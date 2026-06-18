@@ -67,7 +67,7 @@ struct CodexPlusApp: App {
                 }
             )
         }
-        .defaultSize(width: 560, height: 672)
+        .defaultSize(width: 560, height: 693)
     }
 
     private static func makeUsageProvider(for dataSourceMode: UsageDataSourceMode) -> UsageProvider {

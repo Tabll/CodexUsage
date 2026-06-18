@@ -393,6 +393,14 @@ enum UsageFormatting {
         return timeFormatter.string(from: date)
     }
 
+    static func monthDayTime(_ date: Date?) -> String {
+        guard let date else {
+            return "--"
+        }
+
+        return monthDayTimeFormatter.string(from: date)
+    }
+
     static func dateTime(_ date: Date?) -> String {
         guard let date else {
             return "--"
@@ -413,6 +421,13 @@ enum UsageFormatting {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .medium
+        return formatter
+    }()
+
+    private static let monthDayTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_Hans_CN")
+        formatter.dateFormat = "M月d日 HH:mm"
         return formatter
     }()
 

@@ -37,12 +37,12 @@ final class MenuBarContentViewSmokeTests: XCTestCase {
             onRefreshConfigurationChange: { _ in }
         )
         let hostingView = NSHostingView(rootView: view)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 560, height: 672)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 560, height: 693)
 
         hostingView.layoutSubtreeIfNeeded()
 
         XCTAssertGreaterThan(hostingView.fittingSize.width, 0)
         XCTAssertGreaterThan(hostingView.fittingSize.height, 0)
-        XCTAssertLessThanOrEqual(hostingView.fittingSize.height, 672)
+        XCTAssertLessThanOrEqual(hostingView.fittingSize.height, 693)
     }
 }

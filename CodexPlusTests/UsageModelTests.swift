@@ -92,6 +92,17 @@ final class UsageModelTests: XCTestCase {
         XCTAssertEqual(title, "Codex用量")
     }
 
+    func testMonthDayTimeUsesChineseCompactDate() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let date = calendar.date(
+            from: DateComponents(year: 2026, month: 6, day: 18, hour: 22, minute: 32)
+        )
+
+        XCTAssertEqual(UsageFormatting.monthDayTime(date), "6月18日 22:32")
+        XCTAssertEqual(UsageFormatting.monthDayTime(nil), "--")
+    }
+
     @MainActor
     func testSettingsStorePersistsRefreshConfiguration() {
         let suiteName = "CodexPlusTests.RefreshConfiguration"
