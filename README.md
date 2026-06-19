@@ -2,7 +2,7 @@
 
 Codex用量 是一个 macOS 菜单栏 App，用来近实时显示 Codex 桌面端的用量与剩余额度。仓库和 Xcode scheme 仍保留 `CodexPlus`，生成的 App 显示名是「Codex用量」。
 
-当前版本：`0.1.1 (1)`
+当前版本：`0.1.2 (1)`
 最低系统：macOS 26
 产品定位：面向分发的本地优先 App
 
@@ -163,7 +163,7 @@ scripts/package-release.sh
 默认生成：
 
 ```text
-dist/CodexUsage-0.1.1+1.zip
+dist/CodexUsage-0.1.2+1.zip
 ```
 
 Developer ID 签名：
@@ -174,10 +174,32 @@ DEVELOPMENT_TEAM="TEAMID" \
 scripts/package-release.sh
 ```
 
+本机已验证的 Developer ID、公证、staple 流程如下。`CODE_SIGN_IDENTITY` 使用钥匙串里的 Developer ID Application 证书，`codexplus-notary` 是通过 `xcrun notarytool store-credentials` 保存过的钥匙串 profile。
+
+```sh
+CODE_SIGN_IDENTITY="Developer ID Application: TIANSHU WEI (UHGD75H383)" \
+DEVELOPMENT_TEAM="UHGD75H383" \
+scripts/package-release.sh
+
+xcrun notarytool submit dist/CodexUsage-0.1.2+1.zip \
+  --keychain-profile codexplus-notary \
+  --wait
+
+xcrun stapler staple build/ReleaseDerivedData/Build/Products/Release/Codex用量.app
+xcrun stapler validate build/ReleaseDerivedData/Build/Products/Release/Codex用量.app
+
+ditto -c -k --keepParent --norsrc --noextattr --noqtn --noacl \
+  build/ReleaseDerivedData/Build/Products/Release/Codex用量.app \
+  dist/CodexUsage-0.1.2+1.notarized.zip
+
+spctl --assess --type execute --verbose=4 \
+  build/ReleaseDerivedData/Build/Products/Release/Codex用量.app
+```
+
 公证、staple 和最终分发说明见 [打包发布](docs/release.md)。当前已验证的最终分发包命名为：
 
 ```text
-dist/CodexUsage-0.1.1+1.notarized.zip
+dist/CodexUsage-0.1.2+1.notarized.zip
 ```
 
 ## 后续方向

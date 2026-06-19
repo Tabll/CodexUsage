@@ -448,7 +448,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
@@ -476,7 +476,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
