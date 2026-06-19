@@ -35,13 +35,44 @@
 		7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */; };
 		7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */; };
 		7F6C2F392B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */; };
+		8A5A10102D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
+		8A5A10112D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
+		8A5A10122D6A000100C0D001 /* CodexPlusWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */; };
+		8A5A10132D6A000100C0D001 /* UsageSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */; };
+		8A5A10142D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
+		8A5A10152D6A000100C0D001 /* CodexPlusWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8A5A10262D6A000100C0D001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7F6C2E2D2B4F4E9000A1B201 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8A5A10202D6A000100C0D001;
+			remoteInfo = CodexPlusWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8A5A10242D6A000100C0D001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8A5A10152D6A000100C0D001 /* CodexPlusWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		7F6C2E362B4F4E9000A1B201 /* Codex用量.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Codex用量.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusApp.swift; sourceTree = "<group>"; };
 		7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		7F6C2E3F2B4F4E9000A1B201 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8A5A10002D6A000100C0D001 /* CodexPlus.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodexPlus.entitlements; sourceTree = "<group>"; };
 		7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSnapshot.swift; sourceTree = "<group>"; };
 		7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageProvider.swift; sourceTree = "<group>"; };
@@ -59,6 +90,11 @@
 		7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentViewSmokeTests.swift; sourceTree = "<group>"; };
 		7F6C2F052B4F4E9000A1B201 /* response_completed_usage.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = response_completed_usage.log; sourceTree = "<group>"; };
 		7F6C2F062B4F4E9000A1B201 /* codex_rate_limits.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex_rate_limits.log; sourceTree = "<group>"; };
+		8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUsageCache.swift; sourceTree = "<group>"; };
+		8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusWidgetBundle.swift; sourceTree = "<group>"; };
+		8A5A10042D6A000100C0D001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8A5A10052D6A000100C0D001 /* CodexPlusWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodexPlusWidget.entitlements; sourceTree = "<group>"; };
+		8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CodexPlusWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +114,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8A5A10222D6A000100C0D001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -85,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				7F6C2E372B4F4E9000A1B201 /* CodexPlus */,
+				8A5A10022D6A000100C0D001 /* CodexPlusWidget */,
 				7F6C2F0A2B4F4E9000A1B201 /* CodexPlusTests */,
 				7F6C2E762B4F4E9000A1B201 /* Frameworks */,
 				7F6C2E352B4F4E9000A1B201 /* Products */,
@@ -96,6 +140,7 @@
 			children = (
 				7F6C2E362B4F4E9000A1B201 /* Codex用量.app */,
 				7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */,
+				8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -110,6 +155,7 @@
 				7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */,
 				7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */,
 				7F6C2E3F2B4F4E9000A1B201 /* Info.plist */,
+				8A5A10002D6A000100C0D001 /* CodexPlus.entitlements */,
 				7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */,
 			);
 			path = CodexPlus;
@@ -147,8 +193,19 @@
 			isa = PBXGroup;
 			children = (
 				7F6C2E632B4F4E9000A1B201 /* SettingsStore.swift */,
+				8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		8A5A10022D6A000100C0D001 /* CodexPlusWidget */ = {
+			isa = PBXGroup;
+			children = (
+				8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */,
+				8A5A10042D6A000100C0D001 /* Info.plist */,
+				8A5A10052D6A000100C0D001 /* CodexPlusWidget.entitlements */,
+			);
+			path = CodexPlusWidget;
 			sourceTree = "<group>";
 		};
 		7F6C2F0A2B4F4E9000A1B201 /* CodexPlusTests */ = {
@@ -190,10 +247,12 @@
 				7F6C2E312B4F4E9000A1B201 /* Sources */,
 				7F6C2E332B4F4E9000A1B201 /* Frameworks */,
 				7F6C2E322B4F4E9000A1B201 /* Resources */,
+				8A5A10242D6A000100C0D001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8A5A10252D6A000100C0D001 /* PBXTargetDependency */,
 			);
 			name = CodexPlus;
 			productName = CodexPlus;
@@ -217,6 +276,23 @@
 			productReference = 7F6C2F002B4F4E9000A1B201 /* CodexPlusTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		8A5A10202D6A000100C0D001 /* CodexPlusWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8A5A10272D6A000100C0D001 /* Build configuration list for PBXNativeTarget "CodexPlusWidgetExtension" */;
+			buildPhases = (
+				8A5A10212D6A000100C0D001 /* Sources */,
+				8A5A10222D6A000100C0D001 /* Frameworks */,
+				8A5A10232D6A000100C0D001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CodexPlusWidgetExtension;
+			productName = CodexPlusWidgetExtension;
+			productReference = 8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -231,6 +307,9 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					7F6C2F202B4F4E9000A1B201 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					8A5A10202D6A000100C0D001 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -251,6 +330,7 @@
 			targets = (
 				7F6C2E342B4F4E9000A1B201 /* CodexPlus */,
 				7F6C2F202B4F4E9000A1B201 /* CodexPlusTests */,
+				8A5A10202D6A000100C0D001 /* CodexPlusWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -273,6 +353,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8A5A10232D6A000100C0D001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -288,6 +375,7 @@
 				7F6C2E532B4F4E9000A1B201 /* UsageService.swift in Sources */,
 				7F6C2E602B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */,
 				7F6C2E612B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
+				8A5A10102D6A000100C0D001 /* SharedUsageCache.swift in Sources */,
 				7F6C2E702B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
 				7F6C2E712B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
 			);
@@ -304,6 +392,7 @@
 				7F6C2F342B4F4E9000A1B201 /* UsageService.swift in Sources */,
 				7F6C2F352B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */,
 				7F6C2F362B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
+				8A5A10112D6A000100C0D001 /* SharedUsageCache.swift in Sources */,
 				7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
 				7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
 				7F6C2F102B4F4E9000A1B201 /* UsageModelTests.swift in Sources */,
@@ -313,7 +402,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8A5A10212D6A000100C0D001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A5A10122D6A000100C0D001 /* CodexPlusWidgetBundle.swift in Sources */,
+				8A5A10132D6A000100C0D001 /* UsageSnapshot.swift in Sources */,
+				8A5A10142D6A000100C0D001 /* SharedUsageCache.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8A5A10252D6A000100C0D001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8A5A10202D6A000100C0D001 /* CodexPlusWidgetExtension */;
+			targetProxy = 8A5A10262D6A000100C0D001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		7F6C2E422B4F4E9000A1B201 /* Debug */ = {
@@ -436,6 +543,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CodexPlus/CodexPlus.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -448,7 +556,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.2;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
@@ -463,6 +571,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CodexPlus/CodexPlus.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
@@ -476,7 +585,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.2;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
@@ -529,6 +638,67 @@
 			};
 			name = Release;
 		};
+		8A5A10282D6A000100C0D001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CodexPlusWidget/CodexPlusWidget.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CodexPlusWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
+				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
+		8A5A10292D6A000100C0D001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = CodexPlusWidget/CodexPlusWidget.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CodexPlusWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
+				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -555,6 +725,15 @@
 			buildConfigurations = (
 				7F6C2F222B4F4E9000A1B201 /* Debug */,
 				7F6C2F232B4F4E9000A1B201 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8A5A10272D6A000100C0D001 /* Build configuration list for PBXNativeTarget "CodexPlusWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A5A10282D6A000100C0D001 /* Debug */,
+				8A5A10292D6A000100C0D001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

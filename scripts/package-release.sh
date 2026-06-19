@@ -15,6 +15,19 @@ ZIP_BASENAME="${ZIP_BASENAME:-CodexUsage}"
 
 export DEVELOPER_DIR
 
+if [[ "$CODE_SIGN_IDENTITY" == "-" && "${ALLOW_AD_HOC_APP_GROUP_BUILD:-}" != "1" ]]; then
+  cat >&2 <<'EOF'
+Codex用量 现在包含 WidgetKit 小组件，并使用 App Group:
+  group.com.weitianshu.CodexPlus
+
+可运行的 Release 包需要为主 App 和小组件配置包含 App Group 能力的签名身份和 provisioning/profile。
+请传入 CODE_SIGN_IDENTITY 和 DEVELOPMENT_TEAM，或在只想验证编译时直接使用 xcodebuild test ... CODE_SIGNING_ALLOWED=NO。
+
+如确实要尝试旧的 ad-hoc 打包流程，可显式设置 ALLOW_AD_HOC_APP_GROUP_BUILD=1。
+EOF
+  exit 1
+fi
+
 if [[ "$CODE_SIGN_IDENTITY" != "-" && -z "$OTHER_CODE_SIGN_FLAGS" ]]; then
   OTHER_CODE_SIGN_FLAGS="--timestamp"
 fi

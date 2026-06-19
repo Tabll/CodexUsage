@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WidgetKit
 
 @main
 @MainActor
@@ -19,6 +20,7 @@ struct CodexPlusApp: App {
                 refreshConfiguration: settingsStore.refreshConfiguration,
                 onSnapshotUpdate: { snapshot in
                     settingsStore.saveCachedUsageSnapshot(snapshot, for: settingsStore.dataSourceMode)
+                    WidgetCenter.shared.reloadTimelines(ofKind: SharedUsageCacheDefaults.widgetKind)
                 }
             )
         )

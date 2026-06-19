@@ -103,6 +103,55 @@ final class UsageModelTests: XCTestCase {
         XCTAssertEqual(UsageFormatting.monthDayTime(nil), "--")
     }
 
+    func testSharedUsageCacheSavesAndFiltersSnapshot() {
+        let suiteName = "CodexPlusTests.SharedUsageCache.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        defaults.removePersistentDomain(forName: suiteName)
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let cache = SharedUsageCache(defaults: defaults)
+        cache.saveCachedSnapshot(.preview, dataSourceModeRawValue: UsageDataSourceMode.codexDesktop.rawValue)
+
+        XCTAssertEqual(
+            cache.cachedSnapshot(forDataSourceModeRawValue: UsageDataSourceMode.codexDesktop.rawValue)?.sessionId,
+            UsageSnapshot.preview.sessionId
+        )
+        XCTAssertEqual(cache.cachedSnapshot()?.sessionId, UsageSnapshot.preview.sessionId)
+        XCTAssertNil(cache.cachedSnapshot(forDataSourceModeRawValue: UsageDataSourceMode.mock.rawValue))
+    }
+
+    func testSharedUsageCacheMigratesLegacySnapshot() {
+        let legacySuiteName = "CodexPlusTests.LegacyUsageCache.\(UUID().uuidString)"
+        let sharedSuiteName = "CodexPlusTests.MigratedUsageCache.\(UUID().uuidString)"
+        let legacyDefaults = UserDefaults(suiteName: legacySuiteName) ?? .standard
+        let sharedDefaults = UserDefaults(suiteName: sharedSuiteName) ?? .standard
+        legacyDefaults.removePersistentDomain(forName: legacySuiteName)
+        sharedDefaults.removePersistentDomain(forName: sharedSuiteName)
+        defer {
+            legacyDefaults.removePersistentDomain(forName: legacySuiteName)
+            sharedDefaults.removePersistentDomain(forName: sharedSuiteName)
+        }
+
+        SharedUsageCache(defaults: legacyDefaults).saveCachedSnapshot(
+            .preview,
+            dataSourceModeRawValue: UsageDataSourceMode.codexDesktop.rawValue
+        )
+
+        SharedUsageCache.migrateLegacySnapshotIfNeeded(
+            from: legacyDefaults,
+            to: sharedDefaults
+        )
+
+        XCTAssertEqual(
+            SharedUsageCache(defaults: sharedDefaults)
+                .cachedSnapshot(forDataSourceModeRawValue: UsageDataSourceMode.codexDesktop.rawValue)?
+                .sessionId,
+            UsageSnapshot.preview.sessionId
+        )
+    }
+
     @MainActor
     func testSettingsStorePersistsRefreshConfiguration() {
         let suiteName = "CodexPlusTests.RefreshConfiguration"

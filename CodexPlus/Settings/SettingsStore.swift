@@ -90,9 +90,15 @@ final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    private let usageCache: SharedUsageCache
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        usageCache: SharedUsageCache = SharedUsageCache()
+    ) {
         self.defaults = defaults
+        self.usageCache = usageCache
+        usageCache.migrateLegacySnapshotIfNeeded(from: defaults)
 
         let savedModeValue = defaults.string(forKey: Keys.menuBarDisplayMode)
         let savedMode = savedModeValue
@@ -188,30 +194,15 @@ final class SettingsStore: ObservableObject {
     }
 
     func cachedUsageSnapshot(for dataSourceMode: UsageDataSourceMode) -> UsageSnapshot? {
-        guard let data = defaults.data(forKey: Keys.cachedUsageSnapshot),
-              let envelope = try? Self.decoder.decode(CachedUsageSnapshotEnvelope.self, from: data),
-              envelope.dataSourceMode == dataSourceMode else {
-            return nil
-        }
-
-        return envelope.snapshot
+        usageCache.cachedSnapshot(forDataSourceModeRawValue: dataSourceMode.rawValue)
     }
 
     func saveCachedUsageSnapshot(_ snapshot: UsageSnapshot, for dataSourceMode: UsageDataSourceMode) {
-        let envelope = CachedUsageSnapshotEnvelope(
-            dataSourceMode: dataSourceMode,
-            snapshot: snapshot
+        usageCache.saveCachedSnapshot(
+            snapshot,
+            dataSourceModeRawValue: dataSourceMode.rawValue
         )
-
-        guard let data = try? Self.encoder.encode(envelope) else {
-            return
-        }
-
-        defaults.set(data, forKey: Keys.cachedUsageSnapshot)
     }
-
-    private static let encoder = JSONEncoder()
-    private static let decoder = JSONDecoder()
 }
 
 private enum Keys {
@@ -224,11 +215,5 @@ private enum Keys {
     static let isIdlePollingEnabled = "isIdlePollingEnabled"
     static let idleRefreshIntervalMinutes = "idleRefreshIntervalMinutes"
     static let activeRefreshIntervalSeconds = "activeRefreshIntervalSeconds"
-    static let cachedUsageSnapshot = "cachedUsageSnapshot"
     static let didMigrateDefaultDisplayMode = "didMigrateDefaultDisplayMode"
-}
-
-private struct CachedUsageSnapshotEnvelope: Codable {
-    let dataSourceMode: UsageDataSourceMode
-    let snapshot: UsageSnapshot
 }
