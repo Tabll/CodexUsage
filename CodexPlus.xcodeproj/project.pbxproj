@@ -18,7 +18,6 @@
 		7F6C2E702B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */; };
 		7F6C2E712B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */; };
 		7F6C2E722B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */; };
-		7F6C2F402B4F4E9000A1B201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */; };
 		7F6C2F102B4F4E9000A1B201 /* UsageModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F012B4F4E9000A1B201 /* UsageModelTests.swift */; };
 		7F6C2F112B4F4E9000A1B201 /* CodexUsageLogParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F022B4F4E9000A1B201 /* CodexUsageLogParserTests.swift */; };
 		7F6C2F122B4F4E9000A1B201 /* UsageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2F032B4F4E9000A1B201 /* UsageServiceTests.swift */; };
@@ -35,6 +34,7 @@
 		7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E732B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift */; };
 		7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E742B4F4E9000A1B201 /* CodexUsageLogParser.swift */; };
 		7F6C2F392B4F4E9000A1B201 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */; };
+		7F6C2F402B4F4E9000A1B201 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */; };
 		8A5A10102D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
 		8A5A10112D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
 		8A5A10122D6A000100C0D001 /* CodexPlusWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */; };
@@ -72,8 +72,6 @@
 		7F6C2E3D2B4F4E9000A1B201 /* CodexPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusApp.swift; sourceTree = "<group>"; };
 		7F6C2E3E2B4F4E9000A1B201 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		7F6C2E3F2B4F4E9000A1B201 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8A5A10002D6A000100C0D001 /* CodexPlus.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodexPlus.entitlements; sourceTree = "<group>"; };
-		7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSnapshot.swift; sourceTree = "<group>"; };
 		7F6C2E552B4F4E9000A1B201 /* UsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageProvider.swift; sourceTree = "<group>"; };
 		7F6C2E562B4F4E9000A1B201 /* MockUsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUsageProvider.swift; sourceTree = "<group>"; };
@@ -90,6 +88,8 @@
 		7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentViewSmokeTests.swift; sourceTree = "<group>"; };
 		7F6C2F052B4F4E9000A1B201 /* response_completed_usage.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = response_completed_usage.log; sourceTree = "<group>"; };
 		7F6C2F062B4F4E9000A1B201 /* codex_rate_limits.log */ = {isa = PBXFileReference; lastKnownFileType = text; path = codex_rate_limits.log; sourceTree = "<group>"; };
+		7F6C2F412B4F4E9000A1B201 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8A5A10002D6A000100C0D001 /* CodexPlus.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodexPlus.entitlements; sourceTree = "<group>"; };
 		8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUsageCache.swift; sourceTree = "<group>"; };
 		8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPlusWidgetBundle.swift; sourceTree = "<group>"; };
 		8A5A10042D6A000100C0D001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -198,14 +198,12 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		8A5A10022D6A000100C0D001 /* CodexPlusWidget */ = {
+		7F6C2E762B4F4E9000A1B201 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */,
-				8A5A10042D6A000100C0D001 /* Info.plist */,
-				8A5A10052D6A000100C0D001 /* CodexPlusWidget.entitlements */,
+				7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */,
 			);
-			path = CodexPlusWidget;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		7F6C2F0A2B4F4E9000A1B201 /* CodexPlusTests */ = {
@@ -229,12 +227,14 @@
 			path = Fixtures;
 			sourceTree = "<group>";
 		};
-		7F6C2E762B4F4E9000A1B201 /* Frameworks */ = {
+		8A5A10022D6A000100C0D001 /* CodexPlusWidget */ = {
 			isa = PBXGroup;
 			children = (
-				7F6C2E752B4F4E9000A1B201 /* libsqlite3.tbd */,
+				8A5A10032D6A000100C0D001 /* CodexPlusWidgetBundle.swift */,
+				8A5A10042D6A000100C0D001 /* Info.plist */,
+				8A5A10052D6A000100C0D001 /* CodexPlusWidget.entitlements */,
 			);
-			name = Frameworks;
+			path = CodexPlusWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -316,7 +316,7 @@
 			};
 			buildConfigurationList = 7F6C2E302B4F4E9000A1B201 /* Build configuration list for PBXProject "CodexPlus" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = zh-Hans;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				"zh-Hans",
@@ -544,10 +544,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CodexPlus/CodexPlus.entitlements;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UHGD75H383;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodexPlus/Info.plist;
@@ -556,10 +557,11 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -572,11 +574,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CodexPlus/CodexPlus.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UHGD75H383;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodexPlus/Info.plist;
@@ -585,10 +588,11 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -643,10 +647,11 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CodexPlusWidget/CodexPlusWidget.entitlements;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UHGD75H383;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodexPlusWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -655,10 +660,11 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
 				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = macosx;
@@ -673,11 +679,12 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = CodexPlusWidget/CodexPlusWidget.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UHGD75H383;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = CodexPlusWidget/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -686,10 +693,11 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
 				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = macosx;
