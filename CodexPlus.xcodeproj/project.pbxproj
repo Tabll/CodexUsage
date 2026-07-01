@@ -41,6 +41,11 @@
 		8A5A10132D6A000100C0D001 /* UsageSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */; };
 		8A5A10142D6A000100C0D001 /* SharedUsageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A10012D6A000100C0D001 /* SharedUsageCache.swift */; };
 		8A5A10152D6A000100C0D001 /* CodexPlusWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9B3C00022D9A000100AA0001 /* RateLimitResetCredits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3C00012D9A000100AA0001 /* RateLimitResetCredits.swift */; };
+		9B3C00032D9A000100AA0001 /* RateLimitResetCredits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3C00012D9A000100AA0001 /* RateLimitResetCredits.swift */; };
+		9B3C00052D9A000100AA0001 /* RateLimitResetCreditsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3C00042D9A000100AA0001 /* RateLimitResetCreditsService.swift */; };
+		9B3C00062D9A000100AA0001 /* RateLimitResetCreditsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3C00042D9A000100AA0001 /* RateLimitResetCreditsService.swift */; };
+		9B3C00082D9A000100AA0001 /* RateLimitResetCreditsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3C00072D9A000100AA0001 /* RateLimitResetCreditsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +100,9 @@
 		8A5A10042D6A000100C0D001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8A5A10052D6A000100C0D001 /* CodexPlusWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CodexPlusWidget.entitlements; sourceTree = "<group>"; };
 		8A5A10062D6A000100C0D001 /* CodexPlusWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CodexPlusWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B3C00012D9A000100AA0001 /* RateLimitResetCredits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitResetCredits.swift; sourceTree = "<group>"; };
+		9B3C00042D9A000100AA0001 /* RateLimitResetCreditsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitResetCreditsService.swift; sourceTree = "<group>"; };
+		9B3C00072D9A000100AA0001 /* RateLimitResetCreditsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitResetCreditsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -165,6 +173,7 @@
 			isa = PBXGroup;
 			children = (
 				7F6C2E622B4F4E9000A1B201 /* MenuBarDisplayMode.swift */,
+				9B3C00012D9A000100AA0001 /* RateLimitResetCredits.swift */,
 				7F6C2E542B4F4E9000A1B201 /* UsageSnapshot.swift */,
 			);
 			path = Models;
@@ -184,6 +193,7 @@
 		7F6C2E5A2B4F4E9000A1B201 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				9B3C00042D9A000100AA0001 /* RateLimitResetCreditsService.swift */,
 				7F6C2E572B4F4E9000A1B201 /* UsageService.swift */,
 			);
 			path = Services;
@@ -211,6 +221,7 @@
 			children = (
 				7F6C2F012B4F4E9000A1B201 /* UsageModelTests.swift */,
 				7F6C2F022B4F4E9000A1B201 /* CodexUsageLogParserTests.swift */,
+				9B3C00072D9A000100AA0001 /* RateLimitResetCreditsTests.swift */,
 				7F6C2F032B4F4E9000A1B201 /* UsageServiceTests.swift */,
 				7F6C2F042B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift */,
 				7F6C2F0B2B4F4E9000A1B201 /* Fixtures */,
@@ -374,8 +385,10 @@
 				7F6C2E522B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */,
 				7F6C2E532B4F4E9000A1B201 /* UsageService.swift in Sources */,
 				7F6C2E602B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */,
+				9B3C00022D9A000100AA0001 /* RateLimitResetCredits.swift in Sources */,
 				7F6C2E612B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
 				8A5A10102D6A000100C0D001 /* SharedUsageCache.swift in Sources */,
+				9B3C00052D9A000100AA0001 /* RateLimitResetCreditsService.swift in Sources */,
 				7F6C2E702B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
 				7F6C2E712B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
 			);
@@ -391,12 +404,15 @@
 				7F6C2F332B4F4E9000A1B201 /* MockUsageProvider.swift in Sources */,
 				7F6C2F342B4F4E9000A1B201 /* UsageService.swift in Sources */,
 				7F6C2F352B4F4E9000A1B201 /* MenuBarDisplayMode.swift in Sources */,
+				9B3C00032D9A000100AA0001 /* RateLimitResetCredits.swift in Sources */,
 				7F6C2F362B4F4E9000A1B201 /* SettingsStore.swift in Sources */,
 				8A5A10112D6A000100C0D001 /* SharedUsageCache.swift in Sources */,
+				9B3C00062D9A000100AA0001 /* RateLimitResetCreditsService.swift in Sources */,
 				7F6C2F372B4F4E9000A1B201 /* CodexDesktopUsageProvider.swift in Sources */,
 				7F6C2F382B4F4E9000A1B201 /* CodexUsageLogParser.swift in Sources */,
 				7F6C2F102B4F4E9000A1B201 /* UsageModelTests.swift in Sources */,
 				7F6C2F112B4F4E9000A1B201 /* CodexUsageLogParserTests.swift in Sources */,
+				9B3C00082D9A000100AA0001 /* RateLimitResetCreditsTests.swift in Sources */,
 				7F6C2F122B4F4E9000A1B201 /* UsageServiceTests.swift in Sources */,
 				7F6C2F132B4F4E9000A1B201 /* MenuBarContentViewSmokeTests.swift in Sources */,
 			);

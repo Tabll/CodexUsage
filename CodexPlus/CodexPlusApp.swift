@@ -6,12 +6,14 @@ import WidgetKit
 @MainActor
 struct CodexPlusApp: App {
     @StateObject private var usageService: UsageService
+    @StateObject private var resetCreditsService: RateLimitResetCreditsService
     @StateObject private var settingsStore: SettingsStore
 
     init() {
         let settingsStore = SettingsStore()
 
         _settingsStore = StateObject(wrappedValue: settingsStore)
+        _resetCreditsService = StateObject(wrappedValue: RateLimitResetCreditsService())
         _usageService = StateObject(
             wrappedValue: UsageService(
                 provider: Self.makeUsageProvider(for: settingsStore.dataSourceMode),
@@ -32,10 +34,16 @@ struct CodexPlusApp: App {
                 snapshot: usageService.snapshot,
                 status: usageService.status,
                 budgetState: usageService.budgetState,
-                providerName: usageService.providerName,
                 lastErrorMessage: usageService.lastErrorMessage,
+                resetCreditsSnapshot: resetCreditsService.snapshot,
+                resetCreditsStatus: resetCreditsService.status,
+                resetCreditsLastErrorMessage: resetCreditsService.lastErrorMessage,
                 onRefresh: {
                     usageService.refresh()
+                    resetCreditsService.refresh()
+                },
+                onResetCreditsAppear: {
+                    resetCreditsService.refreshIfNeeded()
                 },
                 onQuit: {
                     NSApplication.shared.terminate(nil)

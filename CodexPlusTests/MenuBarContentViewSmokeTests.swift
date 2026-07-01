@@ -12,9 +12,12 @@ final class MenuBarContentViewSmokeTests: XCTestCase {
                 configuration: UsageBudgetConfiguration(isEnabled: true),
                 usedTokens: UsageSnapshot.preview.todayTotalTokens
             ),
-            providerName: "Codex 桌面端（Mock）",
             lastErrorMessage: nil,
+            resetCreditsSnapshot: .preview,
+            resetCreditsStatus: .current,
+            resetCreditsLastErrorMessage: nil,
             onRefresh: {},
+            onResetCreditsAppear: {},
             onQuit: {}
         )
         let hostingView = NSHostingView(rootView: view.frame(width: 300))

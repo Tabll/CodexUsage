@@ -8,14 +8,26 @@ struct MenuBarContentView: View {
     let snapshot: UsageSnapshot?
     let status: UsageServiceStatus
     let budgetState: UsageBudgetState
-    let providerName: String
     let lastErrorMessage: String?
+    let resetCreditsSnapshot: RateLimitResetCreditsSnapshot?
+    let resetCreditsStatus: RateLimitResetCreditsStatus
+    let resetCreditsLastErrorMessage: String?
     let onRefresh: () -> Void
+    let onResetCreditsAppear: () -> Void
     let onQuit: () -> Void
+
+    @State private var isResetCreditsExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
+
+            ResetCreditsSummaryPanel(
+                snapshot: resetCreditsSnapshot,
+                status: resetCreditsStatus,
+                lastErrorMessage: resetCreditsLastErrorMessage,
+                isExpanded: $isResetCreditsExpanded
+            )
 
             HStack(spacing: 10) {
                 RateLimitTile(
@@ -39,7 +51,6 @@ struct MenuBarContentView: View {
                 CompactInfoRow(title: "状态", value: status.title, systemImage: status.menuBarSystemImage)
                 CompactInfoRow(title: "今日", value: todayText, systemImage: "chart.bar.xaxis")
                 CompactInfoRow(title: "当前会话", value: currentSessionText, systemImage: "bolt.horizontal")
-                CompactInfoRow(title: "数据源", value: providerName, systemImage: "desktopcomputer")
                 CompactInfoRow(title: "更新时间", value: lastUpdatedText, systemImage: "clock")
 
                 if let monthlyWindow = snapshot?.rateLimits?.monthlyWindow {
@@ -81,6 +92,7 @@ struct MenuBarContentView: View {
             }
         }
         .padding(14)
+        .onAppear(perform: onResetCreditsAppear)
     }
 
     private var header: some View {
@@ -191,7 +203,6 @@ struct SettingsView: View {
     let onRefreshConfigurationChange: (UsageRefreshConfiguration) -> Void
 
     @State private var isUsageChartPresented = false
-    @State private var isLatestMessagePresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -231,14 +242,6 @@ struct SettingsView: View {
                         systemImage: "chart.xyaxis.line"
                     ) {
                         isUsageChartPresented = true
-                    }
-
-                    SettingsActionButton(
-                        title: "最近消息",
-                        detail: "查看完整日志",
-                        systemImage: "text.bubble"
-                    ) {
-                        isLatestMessagePresented = true
                     }
                 }
             }
@@ -320,10 +323,6 @@ struct SettingsView: View {
         .sheet(isPresented: $isUsageChartPresented) {
             UsageHistoryChartSheet(dataSourceMode: settingsStore.dataSourceMode)
                 .frame(width: 760, height: 540)
-        }
-        .sheet(isPresented: $isLatestMessagePresented) {
-            LatestMessageSheet(dataSourceMode: settingsStore.dataSourceMode)
-                .frame(width: 760, height: 620)
         }
         .onChange(of: settingsStore.budgetConfiguration) { _, configuration in
             onBudgetConfigurationChange(configuration)
@@ -465,275 +464,6 @@ private struct SettingsActionButton: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct LatestMessageSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let dataSourceMode: UsageDataSourceMode
-
-    @State private var message: CodexLogMessage?
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    @State private var didCopyContent = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            header
-
-            content
-        }
-        .padding(22)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .task {
-            await loadLatestMessage()
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("最近消息")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("最新一条日志 · \(dataSourceMode.title)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button {
-                Task {
-                    await loadLatestMessage()
-                }
-            } label: {
-                Label("刷新", systemImage: "arrow.clockwise")
-            }
-            .disabled(isLoading)
-
-            Button {
-                copyContent()
-            } label: {
-                Label(didCopyContent ? "已复制" : "复制内容", systemImage: didCopyContent ? "checkmark" : "doc.on.doc")
-            }
-            .disabled(message == nil)
-
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.borderless)
-            .help("关闭")
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if isLoading {
-            LatestMessagePanel {
-                ProgressView("正在读取最近消息")
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        } else if let errorMessage {
-            LatestMessagePanel {
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-
-                    Text("无法读取最近消息")
-                        .font(.headline)
-
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(24)
-            }
-        } else if let message {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    LatestMessageMetadataGrid(message: message)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 7) {
-                            Image(systemName: "text.alignleft")
-                                .foregroundStyle(Color.blue)
-
-                            Text("内容")
-                                .font(.headline)
-
-                            Spacer()
-
-                            Text("\(message.contentText.count) 字符")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-
-                        ScrollView {
-                            Text(message.contentText)
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.primary)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(12)
-                        }
-                        .frame(minHeight: 230)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(nsColor: .textBackgroundColor))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue.opacity(0.12), lineWidth: 0.8)
-                        )
-                    }
-                }
-                .padding(14)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.blue.opacity(0.16), lineWidth: 0.8)
-            )
-        }
-    }
-
-    @MainActor
-    private func loadLatestMessage() async {
-        isLoading = true
-        errorMessage = nil
-        didCopyContent = false
-
-        do {
-            let provider = makeLatestMessageProvider()
-            let latestMessage = try await provider.fetchLatestLogMessage()
-
-            guard !Task.isCancelled else {
-                return
-            }
-
-            message = latestMessage
-            isLoading = false
-        } catch {
-            guard !Task.isCancelled else {
-                return
-            }
-
-            message = nil
-            errorMessage = error.localizedDescription
-            isLoading = false
-        }
-    }
-
-    private func makeLatestMessageProvider() -> any UsageLatestMessageProvider {
-        switch dataSourceMode {
-        case .codexDesktop:
-            return CodexDesktopUsageProvider()
-        case .mock:
-            return MockUsageProvider()
-        }
-    }
-
-    private func copyContent() {
-        guard let message else {
-            return
-        }
-
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(message.contentText, forType: .string)
-        didCopyContent = true
-    }
-}
-
-private struct LatestMessagePanel<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(nsColor: .controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.blue.opacity(0.16), lineWidth: 0.8)
-                )
-
-            content()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-private struct LatestMessageMetadataGrid: View {
-    let message: CodexLogMessage
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                Image(systemName: "list.bullet.rectangle")
-                    .foregroundStyle(Color.blue)
-
-                Text("数据")
-                    .font(.headline)
-            }
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                ForEach(Array(message.metadataRows.enumerated()), id: \.offset) { _, row in
-                    LatestMessageMetadataRow(title: row.title, value: row.value)
-                }
-            }
-        }
-    }
-}
-
-private struct LatestMessageMetadataRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-
-            Text(value)
-                .font(.caption)
-                .monospacedDigit()
-                .lineLimit(2)
-                .truncationMode(.middle)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color(nsColor: .windowBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 7)
-                .stroke(Color.blue.opacity(0.10), lineWidth: 0.7)
-        )
     }
 }
 
@@ -921,8 +651,9 @@ private struct UsageHistoryChartSheet: View {
                 RuleMark(x: .value("选中日期", selectedSummary.date, unit: .day))
                     .foregroundStyle(Color.blue.opacity(0.34))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                    .annotation(position: .top, alignment: .leading, spacing: 8) {
+                    .annotation(position: .top, alignment: detailCardAlignment(for: selectedSummary), spacing: 8) {
                         UsageHistoryDetailCard(summary: selectedSummary)
+                            .allowsHitTesting(false)
                     }
             }
         }
@@ -999,7 +730,7 @@ private struct UsageHistoryChartSheet: View {
             return "--"
         }
 
-        return UsageHistoryFormatting.shortDay(peak.date)
+        return UsageHistoryFormatting.monthDay(peak.date)
     }
 
     private var chartMaxY: Int {
@@ -1066,22 +797,44 @@ private struct UsageHistoryChartSheet: View {
                 return
             }
 
-            let relativeX = location.x - plotFrame.origin.x
-            guard let date = proxy.value(atX: relativeX, as: Date.self) else {
-                selectedSummary = nil
-                return
-            }
-
-            selectedSummary = nearestSummary(to: date)
+            selectedSummary = selectableSummary(
+                atRelativeX: location.x - plotFrame.origin.x,
+                proxy: proxy
+            )
         case .ended:
             selectedSummary = nil
         }
     }
 
-    private func nearestSummary(to date: Date) -> DailyUsageSummary? {
-        summaries.min { lhs, rhs in
-            abs(lhs.date.timeIntervalSince(date)) < abs(rhs.date.timeIntervalSince(date))
+    private func selectableSummary(
+        atRelativeX relativeX: CGFloat,
+        proxy: ChartProxy
+    ) -> DailyUsageSummary? {
+        let candidates = summaries.compactMap { summary -> (summary: DailyUsageSummary, distance: CGFloat)? in
+            guard let xPosition = proxy.position(forX: summary.date) else {
+                return nil
+            }
+
+            return (summary, abs(xPosition - relativeX))
         }
+
+        guard let nearest = candidates.min(by: { lhs, rhs in
+            lhs.distance < rhs.distance
+        }) else {
+            return nil
+        }
+
+        let maximumSelectionDistance: CGFloat = 18
+        return nearest.distance <= maximumSelectionDistance ? nearest.summary : nil
+    }
+
+    private func detailCardAlignment(for summary: DailyUsageSummary) -> Alignment {
+        guard let index = summaries.firstIndex(where: { $0.date == summary.date }) else {
+            return .leading
+        }
+
+        let shouldOpenLeft = index >= max(summaries.count - 2, 0)
+        return shouldOpenLeft ? .trailing : .leading
     }
 }
 
@@ -1193,6 +946,10 @@ private enum UsageHistoryFormatting {
         fullDayFormatter.string(from: date)
     }
 
+    static func monthDay(_ date: Date) -> String {
+        monthDayFormatter.string(from: date)
+    }
+
     private static let shortDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
@@ -1205,6 +962,286 @@ private enum UsageHistoryFormatting {
         formatter.dateFormat = "M月d日 EEEE"
         return formatter
     }()
+
+    private static let monthDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_Hans_CN")
+        formatter.dateFormat = "M月d日"
+        return formatter
+    }()
+}
+
+private struct ResetCreditsSummaryPanel: View {
+    let snapshot: RateLimitResetCreditsSnapshot?
+    let status: RateLimitResetCreditsStatus
+    let lastErrorMessage: String?
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 9) {
+                    Image(systemName: "arrow.counterclockwise.circle")
+                        .foregroundStyle(statusTint)
+                        .frame(width: 18)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(summaryText)
+                            .font(.callout)
+                            .fontWeight(.medium)
+                            .monospacedDigit()
+
+                        Text(subtitleText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    if status == .refreshing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 16, height: 16)
+                    }
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+                .padding(10)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(summaryText)
+
+            if isExpanded {
+                Divider()
+                    .padding(.horizontal, 10)
+
+                detail
+                    .padding(10)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(statusTint.opacity(0.28), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if let snapshot, !snapshot.credits.isEmpty {
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(Array(snapshot.nearestExpiringCredits.enumerated()), id: \.offset) { index, credit in
+                    ResetCreditRow(index: index + 1, credit: credit)
+                }
+
+                if let lastErrorMessage, !lastErrorMessage.isEmpty {
+                    Text(lastErrorMessage)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        } else if status == .refreshing {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+
+                Text("正在读取 reset credits")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else if let lastErrorMessage, !lastErrorMessage.isEmpty {
+            ResetCreditsMessage(
+                systemImage: "exclamationmark.triangle",
+                title: "无法读取 reset credits",
+                detail: lastErrorMessage,
+                tint: .orange
+            )
+        } else {
+            ResetCreditsMessage(
+                systemImage: "clock.badge.questionmark",
+                title: "暂无 reset credits 明细",
+                detail: "点击刷新后显示每一次过期时间",
+                tint: .secondary
+            )
+        }
+    }
+
+    private var summaryText: String {
+        guard let snapshot else {
+            return "重置次数 --次可用"
+        }
+
+        return "重置次数 \(snapshot.availableCount)次可用"
+    }
+
+    private var subtitleText: String {
+        if let snapshot, !snapshot.credits.isEmpty {
+            if snapshot.credits.count > RateLimitResetCreditsSnapshot.maximumDisplayedCreditCount {
+                return isExpanded ? "仅显示最近过期的 3 次" : "点击展开最近过期的 3 次"
+            }
+
+            return isExpanded ? "已展开每次过期时间" : "点击展开每次过期时间"
+        }
+
+        switch status {
+        case .idle:
+            return "等待 reset credits 数据"
+        case .refreshing:
+            return "正在使用本机 Codex 凭证读取"
+        case .current:
+            return "暂无具体过期时间"
+        case .stale:
+            return "缓存已超过 24 小时"
+        case .failed:
+            return "点击展开查看错误"
+        }
+    }
+
+    private var statusTint: Color {
+        switch status {
+        case .idle:
+            return .secondary
+        case .refreshing:
+            return .blue
+        case .current:
+            return .green
+        case .stale:
+            return .orange
+        case .failed:
+            return .red
+        }
+    }
+}
+
+private struct ResetCreditRow: View {
+    let index: Int
+    let credit: RateLimitResetCredit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Text("#\(index)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+
+                Text(credit.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 4)
+
+                Text(credit.localizedStatusTitle)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(statusTint.opacity(0.14))
+                    )
+                    .foregroundStyle(statusTint)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                ResetCreditDateLabel(title: "授予", date: credit.grantedAt)
+                ResetCreditDateLabel(title: "过期", date: credit.expiresAt)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 7)
+                .fill(Color(nsColor: .windowBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 0.6)
+        )
+    }
+
+    private var statusTint: Color {
+        switch credit.status.lowercased() {
+        case "available", "active":
+            return .green
+        case "expired":
+            return .red
+        case "used", "redeemed":
+            return .secondary
+        default:
+            return .blue
+        }
+    }
+}
+
+private struct ResetCreditDateLabel: View {
+    let title: String
+    let date: Date?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .frame(width: 28, alignment: .leading)
+
+            Text(UsageFormatting.dateTime(date))
+                .font(.caption2)
+                .monospacedDigit()
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ResetCreditsMessage: View {
+    let systemImage: String
+    let title: String
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: systemImage)
+                .foregroundStyle(tint)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 private struct RateLimitTile: View {
@@ -1358,9 +1395,12 @@ private struct SettingsValueRow: View {
             configuration: UsageBudgetConfiguration(isEnabled: true),
             usedTokens: UsageSnapshot.preview.todayTotalTokens
         ),
-        providerName: "Codex 桌面端（Mock）",
         lastErrorMessage: nil,
+        resetCreditsSnapshot: .preview,
+        resetCreditsStatus: .current,
+        resetCreditsLastErrorMessage: nil,
         onRefresh: {},
+        onResetCreditsAppear: {},
         onQuit: {}
     )
     .frame(width: 300)
