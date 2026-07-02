@@ -121,7 +121,7 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
             }
 
             if let existingEvent = eventsByTurnId[event.turnId],
-               existingEvent.timestamp > event.timestamp {
+               !shouldReplaceUsageEvent(existingEvent, with: event) {
                 continue
             }
 
@@ -140,6 +140,17 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
                 )
             }
             .max { $0.updatedAt < $1.updatedAt }
+    }
+
+    private func shouldReplaceUsageEvent(
+        _ existingEvent: CodexUsageLogEvent,
+        with candidateEvent: CodexUsageLogEvent
+    ) -> Bool {
+        if existingEvent.timestamp != candidateEvent.timestamp {
+            return existingEvent.timestamp < candidateEvent.timestamp
+        }
+
+        return existingEvent.threadId == "codex-desktop" && candidateEvent.threadId != "codex-desktop"
     }
 
     private func loadDailyUsageHistory(days requestedDays: Int) throws -> [DailyUsageSummary] {
@@ -171,7 +182,7 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
                     }
 
                     if let existingEvent = eventsByTurnId[event.turnId],
-                       existingEvent.timestamp > event.timestamp {
+                       !shouldReplaceUsageEvent(existingEvent, with: event) {
                         continue
                     }
 
@@ -298,7 +309,7 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         let sql = """
         SELECT ts, feedback_log_body
         FROM logs
-        WHERE target = 'codex_api::endpoint::responses_websocket'
+        WHERE target IN ('codex_api::endpoint::responses_websocket', 'log')
           AND (
             feedback_log_body LIKE '%"type":"response.completed"%'
             OR feedback_log_body LIKE '%"type":"codex.rate_limits"%'
@@ -460,7 +471,7 @@ struct CodexDesktopUsageProvider: UsageProvider, UsageHistoryProvider, UsageLate
         let sql = """
         SELECT ts, feedback_log_body
         FROM logs
-        WHERE target = 'codex_api::endpoint::responses_websocket'
+        WHERE target IN ('codex_api::endpoint::responses_websocket', 'log')
           AND ts >= ?
           AND feedback_log_body LIKE '%"type":"response.completed"%'
         ORDER BY ts ASC, id ASC;

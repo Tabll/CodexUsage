@@ -27,7 +27,8 @@ enum CodexUsageLogParser {
         let threadId = extractAttribute("thread_id", from: body)
             ?? extractAttribute("thread.id", from: body)
             ?? "codex-desktop"
-        let turnId = extractAttribute("turn_id", from: body)
+        let turnId = response["id"] as? String
+            ?? extractAttribute("turn_id", from: body)
             ?? extractAttribute("turn.id", from: body)
             ?? "\(Int(timestamp.timeIntervalSince1970))-\(totalTokens)"
 

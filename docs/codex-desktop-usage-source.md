@@ -30,7 +30,7 @@ feedback_log_body
 只解析满足以下条件的日志：
 
 ```text
-target = codex_api::endpoint::responses_websocket
+target IN (codex_api::endpoint::responses_websocket, log)
 feedback_log_body contains "usage" or "codex.rate_limits"
 ```
 
@@ -41,7 +41,7 @@ feedback_log_body contains "usage" or "codex.rate_limits"
 {"type": "codex.rate_limits"}
 ```
 
-这样可以避开请求体、工具调用参数、普通日志正文和包含查询命令的伪命中。
+新版 Codex 可能把 Responses 事件写在 `target = log` 的 `Received message {...}` 行里，旧版则主要写在 `codex_api::endpoint::responses_websocket` 的 `websocket event: {...}` 行里。解析器会同时兼容这两种前缀，并在 JSON 解析后再检查事件类型，从而避开请求体、工具调用参数、普通日志正文和包含查询命令的伪命中。
 
 ## 用量字段
 
@@ -114,9 +114,10 @@ feedback_log_body contains "usage" or "codex.rate_limits"
 
 ## 聚合方式
 
-- 当前会话：取最新 `response.completed` 所在 thread，并汇总该 thread 最近可解析 turn 的用量。
+- 当前会话：取最新 `response.completed` 所在 thread，并汇总该 thread 最近可解析 turn 的用量；新版 `log` 行没有 thread 前缀时会归入 `codex-desktop`。
 - 今日总量：汇总本地自然日内所有可解析 `response.completed` 的 `total_tokens`。
 - 更新时间：使用最新可解析 usage 或 rate limit 记录的 `ts`。
+- 去重：优先使用 `response.id` 作为 turn key；旧日志没有 `response.id` 时再使用 `turn.id` / `turn_id`，避免新版 `log` 行和旧 websocket 行同时出现时重复累计同一次响应。
 
 当前实现会读取每个候选库最近 2000 条候选日志，再在内存里解析和去重，并选择 `updatedAt` 最新的有效快照。
 

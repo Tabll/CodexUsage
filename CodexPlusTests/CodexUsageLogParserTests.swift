@@ -23,6 +23,28 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(event.totalTokens, 1_500)
     }
 
+    func testParseCompletedUsageFromReceivedMessageUsesResponseIdFallback() throws {
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_010)
+        let body = """
+        Received message {"type":"response.completed","response":{"id":"resp_fixture_new_log","usage":{"input_tokens":700,"output_tokens":45,"total_tokens":745,"input_tokens_details":{"cached_tokens":300},"output_tokens_details":{"reasoning_tokens":12}}}}
+        """
+
+        let event = try XCTUnwrap(
+            CodexUsageLogParser.parseCompletedUsage(
+                body: body,
+                timestamp: timestamp
+            )
+        )
+
+        XCTAssertEqual(event.threadId, "codex-desktop")
+        XCTAssertEqual(event.turnId, "resp_fixture_new_log")
+        XCTAssertEqual(event.inputTokens, 700)
+        XCTAssertEqual(event.cachedInputTokens, 300)
+        XCTAssertEqual(event.outputTokens, 45)
+        XCTAssertEqual(event.reasoningTokens, 12)
+        XCTAssertEqual(event.totalTokens, 745)
+    }
+
     func testParseRateLimitsFromFixture() throws {
         let body = try fixture(named: "codex_rate_limits", fileExtension: "log")
         let timestamp = Date(timeIntervalSince1970: 1_700_000_100)
@@ -146,6 +168,107 @@ final class CodexUsageLogParserTests: XCTestCase {
         XCTAssertEqual(snapshot.todayTotalTokens, 0)
         XCTAssertEqual(snapshot.rateLimits?.shortWindow?.remainingPercent, 88)
         XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 89)
+    }
+
+    func testDesktopProviderReadsUsageFromLogTarget() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let databaseURL = directory.appendingPathComponent("new-log-target.sqlite")
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_400)
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        var database: OpaquePointer?
+        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK, let database else {
+            throw sqliteError(database)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try createLogsTable(database: database)
+        try insertLogBody(
+            receivedMessageCompletedUsageBody(),
+            timestamp: timestamp,
+            target: "log",
+            database: database
+        )
+        try insertLogBody(
+            receivedMessageRateLimitsBody(timestamp: timestamp),
+            timestamp: timestamp,
+            target: "log",
+            database: database
+        )
+
+        let provider = CodexDesktopUsageProvider(
+            databaseCandidates: [databaseURL],
+            recentRowLimit: 20
+        )
+
+        let snapshot = try await provider.fetchSnapshot()
+
+        XCTAssertEqual(snapshot.sessionId, "codex-desktop")
+        XCTAssertEqual(snapshot.updatedAt, timestamp)
+        XCTAssertEqual(snapshot.inputTokens, 700)
+        XCTAssertEqual(snapshot.outputTokens, 45)
+        XCTAssertEqual(snapshot.cachedInputTokens, 300)
+        XCTAssertEqual(snapshot.reasoningTokens, 12)
+        XCTAssertEqual(snapshot.totalTokens, 745)
+        XCTAssertEqual(snapshot.rateLimits?.shortWindow?.remainingPercent, 77)
+        XCTAssertEqual(snapshot.rateLimits?.weeklyWindow?.remainingPercent, 66)
+    }
+
+    func testDesktopProviderDeduplicatesLogAndWebsocketCopies() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexPlusTests-\(UUID().uuidString)", isDirectory: true)
+        let databaseURL = directory.appendingPathComponent("duplicate-targets.sqlite")
+        let timestamp = Date(timeIntervalSince1970: 1_700_000_500)
+        let responseId = "resp_duplicate_fixture"
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        var database: OpaquePointer?
+        guard sqlite3_open(databaseURL.path, &database) == SQLITE_OK, let database else {
+            throw sqliteError(database)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try createLogsTable(database: database)
+        try insertLogBody(
+            receivedMessageCompletedUsageBody(responseId: responseId),
+            timestamp: timestamp,
+            target: "log",
+            database: database
+        )
+        try insertLogBody(
+            websocketCompletedUsageBody(responseId: responseId, timestamp: timestamp),
+            timestamp: timestamp,
+            database: database
+        )
+
+        let provider = CodexDesktopUsageProvider(
+            databaseCandidates: [databaseURL],
+            recentRowLimit: 20
+        )
+
+        let snapshot = try await provider.fetchSnapshot()
+
+        XCTAssertEqual(snapshot.sessionId, "fixture-thread")
+        XCTAssertEqual(snapshot.inputTokens, 700)
+        XCTAssertEqual(snapshot.outputTokens, 45)
+        XCTAssertEqual(snapshot.cachedInputTokens, 300)
+        XCTAssertEqual(snapshot.reasoningTokens, 12)
+        XCTAssertEqual(snapshot.totalTokens, 745)
     }
 
     func testDesktopProviderWatchesAllDatabaseCandidates() {
@@ -391,8 +514,14 @@ final class CodexUsageLogParserTests: XCTestCase {
         }
     }
 
-    private func insertLogBody(_ body: String, timestamp: Date, database: OpaquePointer) throws {
+    private func insertLogBody(
+        _ body: String,
+        timestamp: Date,
+        target: String = "codex_api::endpoint::responses_websocket",
+        database: OpaquePointer
+    ) throws {
         let escapedBody = body.replacingOccurrences(of: "'", with: "''")
+        let escapedTarget = target.replacingOccurrences(of: "'", with: "''")
         let timestampSeconds = Int(timestamp.timeIntervalSince1970)
 
         try execute(
@@ -400,7 +529,7 @@ final class CodexUsageLogParserTests: XCTestCase {
             INSERT INTO logs (ts, target, feedback_log_body)
             VALUES (
                 \(timestampSeconds),
-                'codex_api::endpoint::responses_websocket',
+                '\(escapedTarget)',
                 '\(escapedBody)'
             );
             """,
@@ -484,6 +613,32 @@ final class CodexUsageLogParserTests: XCTestCase {
 
         return """
         session_loop{thread_id=fixture-thread}:turn{turn.id=fixture-turn-\(timestampSeconds)}: websocket event: {"type":"response.completed","response":{"usage":{"input_tokens":\(inputTokens),"output_tokens":\(outputTokens),"total_tokens":\(totalTokens),"input_tokens_details":{"cached_tokens":\(cachedInputTokens)},"output_tokens_details":{"reasoning_tokens":\(reasoningTokens)}}}}
+        """
+    }
+
+    private func receivedMessageCompletedUsageBody() -> String {
+        receivedMessageCompletedUsageBody(responseId: "resp_fixture_new_log")
+    }
+
+    private func receivedMessageCompletedUsageBody(responseId: String) -> String {
+        """
+        Received message {"type":"response.completed","response":{"id":"\(responseId)","usage":{"input_tokens":700,"output_tokens":45,"total_tokens":745,"input_tokens_details":{"cached_tokens":300},"output_tokens_details":{"reasoning_tokens":12}}}}
+        """
+    }
+
+    private func websocketCompletedUsageBody(responseId: String, timestamp: Date) -> String {
+        let timestampSeconds = Int(timestamp.timeIntervalSince1970)
+
+        return """
+        session_loop{thread_id=fixture-thread}:turn{turn.id=fixture-turn-\(timestampSeconds)}: websocket event: {"type":"response.completed","response":{"id":"\(responseId)","usage":{"input_tokens":700,"output_tokens":45,"total_tokens":745,"input_tokens_details":{"cached_tokens":300},"output_tokens_details":{"reasoning_tokens":12}}}}
+        """
+    }
+
+    private func receivedMessageRateLimitsBody(timestamp: Date) -> String {
+        let timestampSeconds = Int(timestamp.timeIntervalSince1970)
+
+        return """
+        Received message {"type":"codex.rate_limits","plan_type":"prolite","rate_limits":{"allowed":true,"limit_reached":false,"primary":{"used_percent":23,"window_minutes":300,"reset_after_seconds":1200,"reset_at":\(timestampSeconds + 1_200)},"secondary":{"used_percent":34,"window_minutes":10080,"reset_after_seconds":2400,"reset_at":\(timestampSeconds + 2_400)}},"code_review_rate_limits":null,"additional_rate_limits":{},"credits":null,"promo":null}
         """
     }
 
