@@ -573,7 +573,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
@@ -604,7 +604,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus;
 				PRODUCT_MODULE_NAME = CodexPlus;
 				PRODUCT_NAME = "Codex用量";
@@ -676,7 +676,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
 				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -709,7 +709,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.weitianshu.CodexPlus.CodexPlusWidget;
 				PRODUCT_MODULE_NAME = CodexPlusWidgetExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
